@@ -42,19 +42,22 @@ class UpdateConstructor {
             return;
         }
         console.info('Submitting changes:', changes);
-        fetchFigmaAPI(FigmaAPIURLs.postVariables(fileId), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(changes),
-        })
-            .then((result) => {
+        try {
+            const result = await fetchFigmaAPI(FigmaAPIURLs.postVariables(fileId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(changes),
+            });
             this.extraStats.result = result;
-        })
-            .catch((error) => {
-            this.extraStats.result = `${error.message}\n\n${error.stack}`;
-        });
+        }
+        catch (error) {
+            this.extraStats.result =
+                typeof error === 'string'
+                    ? error
+                    : `${error.message}\n\n${error.stack}`;
+        }
     }
     createVariable(name, collectionLabel, resolvedType) {
         const variableCollectionId = this.figmaTokens[collectionLabel].collection.id;

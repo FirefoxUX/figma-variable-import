@@ -184,7 +184,10 @@ function setGithubWorkflowError(error) {
         : error.stack || error.message || 'An unknown error occurred.';
     summary.addHeading('Central>Figma Variable Import Summary', 2);
     summary.addEOL().addRaw('> [!CAUTION]').addEOL();
-    summary.addEOL().addRaw('> An error occurred while running the script.').addEOL();
+    summary
+        .addEOL()
+        .addRaw('> An error occurred while running the script.')
+        .addEOL();
     summary.addEOL().addRaw(`>`).addEOL();
     summary.addEOL().addRaw(`> \`\`\``).addEOL();
     errorMessage.split('\n').forEach((line) => {

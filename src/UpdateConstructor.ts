@@ -104,19 +104,25 @@ class UpdateConstructor {
     }
 
     console.info('Submitting changes:', changes)
-    fetchFigmaAPI<PostVariablesResponse>(FigmaAPIURLs.postVariables(fileId), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(changes),
-    })
-      .then((result) => {
-        this.extraStats.result = result
-      })
-      .catch((error) => {
-        this.extraStats.result = `${error.message}\n\n${error.stack}`
-      })
+
+    try {
+      const result = await fetchFigmaAPI<PostVariablesResponse>(
+        FigmaAPIURLs.postVariables(fileId),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(changes),
+        },
+      )
+      this.extraStats.result = result
+    } catch (error) {
+      this.extraStats.result =
+        typeof error === 'string'
+          ? error
+          : `${(error as Error).message}\n\n${(error as Error).stack}`
+    }
   }
 
   createVariable(

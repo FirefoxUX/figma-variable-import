@@ -21,7 +21,7 @@ async function run() {
     updateVariableDefinitions(uc);
     updateVariables(uc);
     if (!Config.dryRun) {
-        uc.submitChanges(Config.figmaFileId);
+        await uc.submitChanges(Config.figmaFileId);
     }
     documentStats(uc.getStats());
 }

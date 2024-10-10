@@ -233,7 +233,10 @@ function setGithubWorkflowError(error: string | Error) {
 
   summary.addHeading('Central>Figma Variable Import Summary', 2)
   summary.addEOL().addRaw('> [!CAUTION]').addEOL()
-  summary.addEOL().addRaw('> An error occurred while running the script.').addEOL()
+  summary
+    .addEOL()
+    .addRaw('> An error occurred while running the script.')
+    .addEOL()
   summary.addEOL().addRaw(`>`).addEOL()
   summary.addEOL().addRaw(`> \`\`\``).addEOL()
   errorMessage.split('\n').forEach((line) => {

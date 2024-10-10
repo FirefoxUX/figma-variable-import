@@ -12,7 +12,7 @@ jobs:
   checks:
     runs-on: 'ubuntu-latest'
     environment: 'Actions'
-    name: 'Check if there are potential updates to the Figma Desktop Styles'
+    name: 'Variable Import Check and Apply'
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
