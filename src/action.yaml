@@ -1,0 +1,21 @@
+name: 'Central>Figma Variable Import'
+description: 'Imports variables from Mozilla central to Figma'
+
+inputs:
+  FIGMA_URL:
+    description: 'URL of the file to import and update variables'
+    required: true
+  FIGMA_ACCESS_TOKEN:
+    description: 'Access token to authenticate with Figma'
+    required: true
+  SLACK_WEBHOOK_SUCCESS:
+    description: 'Webhook URL of a Slack workflow to notify on success'
+  SLACK_WEBHOOK_FAILURE:
+    description: 'Webhook URL of a Slack workflow to notify on failure'
+  DRY_RUN:
+    description: 'Whether to run the action without making changes'
+    default: 'true'
+
+runs:
+  using: 'node20'
+  main: 'index.js'

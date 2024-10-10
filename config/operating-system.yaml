@@ -1,0 +1,69 @@
+---
+system/is-mac:
+  Mac: true
+  Windows: false
+  LinuxUbuntu: false
+  LinuxKDE: false
+system/is-windows:
+  Mac: false
+  Windows: true
+  LinuxUbuntu: false
+  LinuxKDE: false
+system/is-linux:
+  Mac: false
+  Windows: false
+  LinuxUbuntu: true
+  LinuxKDE: true
+
+typography/font-family:
+  Mac: 'SF Pro'
+  Windows: 'Segoe UI'
+  LinuxUbuntu: 'Ubuntu Sans'
+  LinuxKDE: 'Noto Sans'
+
+typography/font-size/chrome/heading/default:
+  Mac: 13
+  Windows: 12
+  LinuxUbuntu: 14.6667
+  LinuxKDE: 13.3333
+typography/font-size/chrome/body/default:
+  Mac: 13
+  Windows: 12
+  LinuxUbuntu: 14.6667
+  LinuxKDE: 13.3333
+typography/font-size/chrome/body/small:
+  Mac: 11
+  Windows: 11
+  LinuxUbuntu: 11
+  LinuxKDE: 11
+typography/font-size/chrome/body/x-small:
+  Mac: 8.2
+  Windows: 9
+  LinuxUbuntu: 11
+  LinuxKDE: 10
+
+typography/font-size/in-content/title/default:
+  Mac: 26
+  Windows: 26
+  LinuxUbuntu: 26
+  LinuxKDE: 26
+typography/font-size/in-content/heading/large:
+  Mac: 22
+  Windows: 22
+  LinuxUbuntu: 22
+  LinuxKDE: 22
+typography/font-size/in-content/heading/default:
+  Mac: 17
+  Windows: 17
+  LinuxUbuntu: 17
+  LinuxKDE: 17
+typography/font-size/in-content/body/default:
+  Mac: 15
+  Windows: 13
+  LinuxUbuntu: 13
+  LinuxKDE: 13
+typography/font-size/in-content/body/small:
+  Mac: 13
+  Windows: 13
+  LinuxUbuntu: 13
+  LinuxKDE: 13

@@ -1,0 +1,29 @@
+name: 'Variable Import Check (read-only)'
+
+on:
+  schedule:
+    - cron: '0 16 * * 2' # Every Tuesday at 4 PM UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  checks:
+    runs-on: 'ubuntu-latest'
+    environment: 'Actions'
+    name: 'Check if there are potential updates to the Figma Desktop Styles'
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{github.event.pull_request.head.ref}}
+          repository: ${{github.event.pull_request.head.repo.full_name}}
+      - name: Install dependencies
+        run: npm ci --production
+      - name: Check for updates
+        uses: './dist'
+        with:
+          FIGMA_URL: ${{ secrets.MAIN_FIGMA_URL }}
+          FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
+          SLACK_WEBHOOK_SUCCESS: ${{ secrets.SLACK_WEBHOOK_SUCCESS }}
+          SLACK_WEBHOOK_FAILURE: ${{ secrets.SLACK_WEBHOOK_FAILURE }}
+          DRY_RUN: 'true'

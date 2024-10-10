@@ -1,0 +1,30 @@
+{
+  "name": "figma-variable-import",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "This script updates the variables in a Figma file from the Firefox Design System",
+  "scripts": {
+    "start": "tsx ./src/index.ts",
+    "copy": "copyfiles -u 1 -e \"**/*.ts\" \"src/**/*\" dist",
+    "build": "tsc && npm run copy",
+    "lint": "eslint -c .eslintrc.cjs src/",
+    "prettier": "prettier -c .prettierrc.cjs --write --check 'src/**/*.*'"
+  },
+  "license": "MPL-2.0",
+  "devDependencies": {
+    "@figma/rest-api-spec": "^0.19.0",
+    "@prettier/plugin-xml": "^3.4.1",
+    "@types/node": "^22.7.5",
+    "@types/tinycolor2": "^1.4.6",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "copyfiles": "^2.4.1",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "tsx": "^4.19.1",
+    "typescript": "5.6.3"
+  },
+  "dependencies": {
+    "tinycolor2": "^1.6.0",
+    "yaml": "^2.5.1"
+  }
+}

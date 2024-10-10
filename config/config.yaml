@@ -1,0 +1,41 @@
+# Configuration file for the import
+
+#########################
+# Central import config #
+#########################
+
+# When encountering a 'color-mix(in srgb, currentColor 7%, transparent)' value, it gets replaced by an actual color
+# The source for the currentColor value is the value of the centralCurrentColorAlias
+centralCurrentColorAlias: 'text/color'
+# URL for the central source of the design tokens
+centralSource: 'https://hg.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma.json'
+# The following values from the central source will overriden
+centralOverrides:
+  'text/color/deemphasized#forcedColors': CanvasText
+  'text/color/error#forcedColors': CanvasText
+
+######################
+# Deprecation config #
+######################
+
+# These are the variables that will not be marked as
+# deprecated, even though they don't exist in central
+figmaOnlyVariables:
+  - 'border/color/overlay'
+  - 'border/color/default'
+  - 'background/color/tabstrip'
+  - 'background/color/toolbar'
+  - 'background/color/canvas-v2'
+  - 'background/color/backdrop'
+  - 'button/background/color/primary/deemphasized'
+######################
+# Debugging settings #
+######################
+
+# You can override ENV variables here for debugging
+# env:
+#   FIGMA_URL: 'https://www.figma.com/design/yl5Z...'
+#   FIGMA_ACCESS_TOKEN: 'figd_...'
+#   SLACK_WEBHOOK_SUCCESS: 'https://hooks.slack.com/triggers/...'
+#   SLACK_WEBHOOK_FAILURE: 'https://hooks.slack.com/triggers/...'
+#   DRY_RUN: 'true'

@@ -1,0 +1,20 @@
+---
+
+typography/font-size/title/default:
+  InContent: '{Operating System$typography/font-size/in-content/title/default}'
+  Chrome: 1
+typography/font-size/heading/large:
+  InContent: '{Operating System$typography/font-size/in-content/heading/large}'
+  Chrome: 1
+typography/font-size/heading/default:
+  InContent: '{Operating System$typography/font-size/in-content/heading/default}'
+  Chrome: '{Operating System$typography/font-size/chrome/heading/default}'
+typography/font-size/body/default:
+  InContent: '{Operating System$typography/font-size/in-content/body/default}'
+  Chrome: '{Operating System$typography/font-size/chrome/body/default}'
+typography/font-size/body/small:
+  InContent: '{Operating System$typography/font-size/in-content/body/small}'
+  Chrome: '{Operating System$typography/font-size/chrome/body/small}'
+typography/font-size/body/x-small:
+  InContent: 1
+  Chrome: '{Operating System$typography/font-size/chrome/body/x-small}'
