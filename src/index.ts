@@ -22,7 +22,6 @@ async function run() {
     Surface: SURFACE_MAP,
   }
 
-  // normalizeCentralTokens(await getCentralTokens())
   const figmaTokens = normalizeFigmaTokens(figmaData)
 
   // // STEP 1: Create a new UpdateConstructor instance to keep track of changes
@@ -50,6 +49,13 @@ run().catch((error) => {
   })
 })
 
+/**
+ * Sorts the Figma variables based on their collection.
+ *
+ * @param figmaData - The metadata from the Figma local variables response.
+ * @returns An object where each key is a collection name and the value is an object containing the collection and its associated variables.
+ * @throws Will throw an error if a collection is not found in the Figma data.
+ */
 function normalizeFigmaTokens(
   figmaData: GetLocalVariablesResponse['meta'],
 ): FigmaCollections {

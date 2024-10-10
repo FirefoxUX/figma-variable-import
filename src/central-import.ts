@@ -74,7 +74,12 @@ function separateCentralTokens(
   )
 }
 
-// TODO: Function that replaces text color
+/**
+ * Replaces color-mixes that mix with currentColor with the actual color from the variables.
+ *
+ * @param tokens - The tokens containing theme information to be processed.
+ * @returns The updated tokens with replaced text colors.
+ */
 function replaceTextColor(tokens: SeparatedTokens): SeparatedTokens {
   const colorMixTf = new ColorMix(tokens.Theme, Config.centralCurrentColorAlias)
   for (const [key, value] of Object.entries(tokens.Theme)) {
