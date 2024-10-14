@@ -21,12 +21,12 @@ typography/font-family:
   LinuxUbuntu: 'Ubuntu Sans'
   LinuxKDE: 'Noto Sans'
 
-typography/font-size/chrome/heading/default:
+typography/font-size/chrome/heading/medium:
   Mac: 13
   Windows: 12
   LinuxUbuntu: 14.6667
   LinuxKDE: 13.3333
-typography/font-size/chrome/body/default:
+typography/font-size/chrome/body/root:
   Mac: 13
   Windows: 12
   LinuxUbuntu: 14.6667
@@ -36,13 +36,13 @@ typography/font-size/chrome/body/small:
   Windows: 11
   LinuxUbuntu: 11
   LinuxKDE: 11
-typography/font-size/chrome/body/x-small:
+typography/font-size/chrome/body/xsmall:
   Mac: 8.2
   Windows: 9
   LinuxUbuntu: 11
   LinuxKDE: 10
 
-typography/font-size/in-content/title/default:
+typography/font-size/in-content/heading/xlarge:
   Mac: 26
   Windows: 26
   LinuxUbuntu: 26
@@ -52,16 +52,16 @@ typography/font-size/in-content/heading/large:
   Windows: 22
   LinuxUbuntu: 22
   LinuxKDE: 22
-typography/font-size/in-content/heading/default:
+typography/font-size/in-content/heading/medium:
   Mac: 17
   Windows: 17
   LinuxUbuntu: 17
   LinuxKDE: 17
-typography/font-size/in-content/body/default:
+typography/font-size/in-content/body/root:
   Mac: 15
-  Windows: 13
-  LinuxUbuntu: 13
-  LinuxKDE: 13
+  Windows: 15
+  LinuxUbuntu: 15
+  LinuxKDE: 15
 typography/font-size/in-content/body/small:
   Mac: 13
   Windows: 13

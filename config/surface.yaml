@@ -1,20 +1,20 @@
 ---
 
-typography/font-size/title/default:
-  InContent: '{Operating System$typography/font-size/in-content/title/default}'
+typography/font-size/heading/xlarge:
+  InContent: '{Operating System$typography/font-size/in-content/heading/xlarge}'
   Chrome: 1
 typography/font-size/heading/large:
   InContent: '{Operating System$typography/font-size/in-content/heading/large}'
   Chrome: 1
-typography/font-size/heading/default:
-  InContent: '{Operating System$typography/font-size/in-content/heading/default}'
-  Chrome: '{Operating System$typography/font-size/chrome/heading/default}'
-typography/font-size/body/default:
-  InContent: '{Operating System$typography/font-size/in-content/body/default}'
-  Chrome: '{Operating System$typography/font-size/chrome/body/default}'
+typography/font-size/heading/medium:
+  InContent: '{Operating System$typography/font-size/in-content/heading/medium}'
+  Chrome: '{Operating System$typography/font-size/chrome/heading/medium}'
+typography/font-size/body/root:
+  InContent: '{Operating System$typography/font-size/in-content/body/root}'
+  Chrome: '{Operating System$typography/font-size/chrome/body/root}'
 typography/font-size/body/small:
   InContent: '{Operating System$typography/font-size/in-content/body/small}'
   Chrome: '{Operating System$typography/font-size/chrome/body/small}'
-typography/font-size/body/x-small:
+typography/font-size/body/xsmall:
   InContent: 1
-  Chrome: '{Operating System$typography/font-size/chrome/body/x-small}'
+  Chrome: '{Operating System$typography/font-size/chrome/body/xsmall}'
