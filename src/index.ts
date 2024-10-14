@@ -40,7 +40,7 @@ async function run() {
     await uc.submitChanges(Config.figmaFileId)
   }
 
-  documentStats(uc.getStats())
+  documentStats(uc.getStats(), uc.figmaTokens)
 }
 
 run().catch((error) => {

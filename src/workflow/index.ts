@@ -14,7 +14,10 @@ type SlackErrorPayload = {
   actionURL: string
 }
 
-export async function documentStats(stats: ExtraStats, figCollections: FigmaCollections) {
+export async function documentStats(
+  stats: ExtraStats,
+  figCollections: FigmaCollections,
+) {
   setGithubWorkflowSummary(stats, figCollections)
   await sendSlackWorkflowStats(stats)
 }
@@ -45,7 +48,10 @@ export async function sendSlackWorkflowStats(stats: ExtraStats): Promise<void> {
   return sendSlackWebhook(Config.slackWebhookUrlSuccess, payload)
 }
 
-export function setGithubWorkflowSummary(stats: ExtraStats, figCollections: FigmaCollections) {
+export function setGithubWorkflowSummary(
+  stats: ExtraStats,
+  figCollections: FigmaCollections,
+) {
   summary.addHeading('Central>Figma Variable Import Summary', 2)
 
   if (Config.dryRun) {
@@ -169,7 +175,11 @@ export function setGithubWorkflowSummary(stats: ExtraStats, figCollections: Figm
           : '',
         summary.wrap(
           'code',
-          formatFigmaVariableValue(variable.newValue, variable.resolvedType, figCollections),
+          formatFigmaVariableValue(
+            variable.newValue,
+            variable.resolvedType,
+            figCollections,
+          ),
         ),
       ]),
     ])
@@ -281,7 +291,9 @@ function formatFigmaVariableValue(
       }
     }
     // Hmm, we couldn't find the alias in the figma collection (concering)
-    console.warn(`When creating the summary: Alias with id ${value.id} not found in figma collection`)
+    console.warn(
+      `When creating the summary: Alias with id ${value.id} not found in figma collection`,
+    )
     // we'll just return the id then
     return `ALIAS(${value.id})`
   }

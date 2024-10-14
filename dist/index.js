@@ -23,7 +23,7 @@ async function run() {
     if (!Config.dryRun) {
         await uc.submitChanges(Config.figmaFileId);
     }
-    documentStats(uc.getStats());
+    documentStats(uc.getStats(), uc.figmaTokens);
 }
 run().catch((error) => {
     documentError(error).then(() => {

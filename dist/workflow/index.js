@@ -2,8 +2,8 @@ import { denormalizeRGBA, isFigmaAlias, roundTo } from '../utils.js';
 import tinycolor from 'tinycolor2';
 import { summary } from './summary.js';
 import Config from '../Config.js';
-export async function documentStats(stats) {
-    setGithubWorkflowSummary(stats);
+export async function documentStats(stats, figCollections) {
+    setGithubWorkflowSummary(stats, figCollections);
     await sendSlackWorkflowStats(stats);
 }
 export async function documentError(error) {
@@ -29,7 +29,7 @@ export async function sendSlackWorkflowStats(stats) {
     };
     return sendSlackWebhook(Config.slackWebhookUrlSuccess, payload);
 }
-export function setGithubWorkflowSummary(stats) {
+export function setGithubWorkflowSummary(stats, figCollections) {
     summary.addHeading('Central>Figma Variable Import Summary', 2);
     if (Config.dryRun) {
         summary.addEOL().addRaw('> [!NOTE]').addEOL();
@@ -132,9 +132,9 @@ export function setGithubWorkflowSummary(stats) {
                 summary.wrap('strong', variable.variable),
                 variable.mode,
                 variable.oldValue !== undefined
-                    ? summary.wrap('code', formatFigmaVariableValue(variable.oldValue, variable.resolvedType))
+                    ? summary.wrap('code', formatFigmaVariableValue(variable.oldValue, variable.resolvedType, figCollections))
                     : '',
-                summary.wrap('code', formatFigmaVariableValue(variable.newValue, variable.resolvedType)),
+                summary.wrap('code', formatFigmaVariableValue(variable.newValue, variable.resolvedType, figCollections)),
             ]),
         ]);
     }
@@ -205,11 +205,19 @@ async function sendSlackWorkflowError(error) {
     };
     return sendSlackWebhook(Config.slackWebhookUrlFailure, payload);
 }
-function formatFigmaVariableValue(value, resolvedType) {
+function formatFigmaVariableValue(value, resolvedType, figCollections) {
     if (value === undefined) {
         return '(not set)';
     }
     if (isFigmaAlias(value)) {
+        for (const collection of Object.values(figCollections)) {
+            for (const variable of collection.variables) {
+                if (variable.id === value.id) {
+                    return `ALIAS(${variable.name})`;
+                }
+            }
+        }
+        console.warn(`When creating the summary: Alias with id ${value.id} not found in figma collection`);
         return `ALIAS(${value.id})`;
     }
     if (resolvedType === 'COLOR' && typeof value === 'object' && 'r' in value) {

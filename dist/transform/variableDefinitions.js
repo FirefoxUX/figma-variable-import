@@ -21,7 +21,7 @@ export function updateVariableDefinitions(uc) {
                     id: variableData.id,
                     description: newDescription,
                 });
-                uc.addDeprecationStat(collectionLabel, variableData.id, true);
+                uc.addDeprecationStat(collectionLabel, variableData.name, true);
             }
         }
         for (const key of sets.inBoth) {
@@ -35,7 +35,7 @@ export function updateVariableDefinitions(uc) {
                     id: variableData.id,
                     description: newDescription,
                 });
-                uc.addDeprecationStat(collectionLabel, variableData.id, false);
+                uc.addDeprecationStat(collectionLabel, variableData.name, false);
             }
         }
     }
