@@ -43,7 +43,7 @@ export function updateVariableDefinitions(uc: UpdateConstructor) {
           id: variableData.id,
           description: newDescription,
         })
-        uc.addDeprecationStat(collectionLabel, variableData.id, true)
+        uc.addDeprecationStat(collectionLabel, variableData.name, true)
       }
     }
 
@@ -65,7 +65,7 @@ export function updateVariableDefinitions(uc: UpdateConstructor) {
           id: variableData.id,
           description: newDescription,
         })
-        uc.addDeprecationStat(collectionLabel, variableData.id, false)
+        uc.addDeprecationStat(collectionLabel, variableData.name, false)
       }
     }
   }

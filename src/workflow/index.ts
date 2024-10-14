@@ -1,5 +1,5 @@
 import { VariableCreate } from '@figma/rest-api-spec'
-import { FigmaVariableValue } from '../types.js'
+import { FigmaCollections, FigmaVariableValue } from '../types.js'
 import { ExtraStats } from '../UpdateConstructor.js'
 import { denormalizeRGBA, isFigmaAlias, roundTo } from '../utils.js'
 import tinycolor from 'tinycolor2'
@@ -14,8 +14,8 @@ type SlackErrorPayload = {
   actionURL: string
 }
 
-export async function documentStats(stats: ExtraStats) {
-  setGithubWorkflowSummary(stats)
+export async function documentStats(stats: ExtraStats, figCollections: FigmaCollections) {
+  setGithubWorkflowSummary(stats, figCollections)
   await sendSlackWorkflowStats(stats)
 }
 
@@ -45,7 +45,7 @@ export async function sendSlackWorkflowStats(stats: ExtraStats): Promise<void> {
   return sendSlackWebhook(Config.slackWebhookUrlSuccess, payload)
 }
 
-export function setGithubWorkflowSummary(stats: ExtraStats) {
+export function setGithubWorkflowSummary(stats: ExtraStats, figCollections: FigmaCollections) {
   summary.addHeading('Central>Figma Variable Import Summary', 2)
 
   if (Config.dryRun) {
@@ -163,12 +163,13 @@ export function setGithubWorkflowSummary(stats: ExtraStats) {
               formatFigmaVariableValue(
                 variable.oldValue,
                 variable.resolvedType,
+                figCollections,
               ),
             )
           : '',
         summary.wrap(
           'code',
-          formatFigmaVariableValue(variable.newValue, variable.resolvedType),
+          formatFigmaVariableValue(variable.newValue, variable.resolvedType, figCollections),
         ),
       ]),
     ])
@@ -264,12 +265,24 @@ async function sendSlackWorkflowError(error: string | Error): Promise<void> {
 function formatFigmaVariableValue(
   value: FigmaVariableValue,
   resolvedType: VariableCreate['resolvedType'],
+  figCollections: FigmaCollections,
 ): string {
   if (value === undefined) {
     return '(not set)'
   }
 
   if (isFigmaAlias(value)) {
+    // find the name of the alias by looking up the id in the figma collection
+    for (const collection of Object.values(figCollections)) {
+      for (const variable of collection.variables) {
+        if (variable.id === value.id) {
+          return `ALIAS(${variable.name})`
+        }
+      }
+    }
+    // Hmm, we couldn't find the alias in the figma collection (concering)
+    console.warn(`When creating the summary: Alias with id ${value.id} not found in figma collection`)
+    // we'll just return the id then
     return `ALIAS(${value.id})`
   }
   // if color, denormalizeRGBA and open in tinycolor
