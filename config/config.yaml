@@ -28,6 +28,8 @@ figmaOnlyVariables:
   - 'background/color/canvas-v2'
   - 'background/color/backdrop'
   - 'button/background/color/primary/deemphasized'
+  - 'tab/shadow/color/1'
+  - 'tab/shadow/color/2'
   - 'card/shadow/color/1'
   - 'card/shadow/color/2'
   - 'card/shadow/hover/color/1'
