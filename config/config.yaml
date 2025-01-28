@@ -28,6 +28,13 @@ figmaOnlyVariables:
   - 'background/color/canvas-v2'
   - 'background/color/backdrop'
   - 'button/background/color/primary/deemphasized'
+  - 'card/shadow/color/1'
+  - 'card/shadow/color/2'
+  - 'card/shadow/hover/color/1'
+  - 'card/shadow/hover/color/2'
+  - 'panel/shadow/color/1'
+  - 'panel/shadow/color/2'
+
 ######################
 # Debugging settings #
 ######################
