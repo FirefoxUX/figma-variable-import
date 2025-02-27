@@ -13,6 +13,28 @@ type SeparatedTokens = {
   Primitives: { [key: string]: PrimitiveTokens }
 }
 
+const HCM_KEYS = [
+  'ActiveText',
+  'ButtonBorder',
+  'ButtonFace',
+  'ButtonText',
+  'Canvas',
+  'CanvasText',
+  'Field',
+  'FieldText',
+  'GrayText',
+  'Highlight',
+  'HighlightText',
+  'LinkText',
+  'Mark',
+  'MarkText',
+  'SelectedItem',
+  'SelectedItemText',
+  'AccentColor',
+  'AccentColorText',
+  'VisitedText',
+]
+
 export async function getCentralCollectionValues() {
   return downloadFromCentral()
     .then(separateCentralTokens)
@@ -120,8 +142,16 @@ function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
   for (const [key, value] of Object.entries(tokens.Theme)) {
     for (const mode of ['Light', 'Dark', 'HCM'] as const) {
       const color = value[mode]
-      if (mode === 'HCM') {
+      if (mode === 'HCM' && HCM_KEYS.includes(color)) {
         tokens.Theme[key][mode] = `{HCM Theme$${color}}`
+      } else if (mode === 'HCM' && color === 'inherit') {
+        // check if the light and dark color are the same, and if so set the HCM color to that, if not throw an error
+        if (value.Light !== value.Dark) {
+          throw new Error(
+            `Ambiguous inherit: When replacing variable references, the color for '${key}' is 'inherit', but the light and dark colors are different: ${value.Light} and ${value.Dark}`,
+          )
+        }
+        tokens.Theme[key][mode] = value.Light
       } else {
         const tinyCurrentColor = tinycolor(color)
         // we only do this for colors, under the assumptions that colors are unique
@@ -138,6 +168,8 @@ function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
       }
     }
   }
+
+  console.log(tokens)
 
   return tokens
 }
