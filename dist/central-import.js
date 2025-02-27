@@ -1,5 +1,26 @@
 import Config from './Config.js';
-import tinycolor from 'tinycolor2';
+import { formatHex8, parse } from 'culori';
+const HCM_KEYS = [
+    'ActiveText',
+    'ButtonBorder',
+    'ButtonFace',
+    'ButtonText',
+    'Canvas',
+    'CanvasText',
+    'Field',
+    'FieldText',
+    'GrayText',
+    'Highlight',
+    'HighlightText',
+    'LinkText',
+    'Mark',
+    'MarkText',
+    'SelectedItem',
+    'SelectedItemText',
+    'AccentColor',
+    'AccentColorText',
+    'VisitedText',
+];
 export async function getCentralCollectionValues() {
     return downloadFromCentral()
         .then(separateCentralTokens)
@@ -47,30 +68,37 @@ function replaceTextColor(tokens) {
 function replaceVariableReferences(tokens) {
     const primitiveLookupMap = new Map();
     for (const [key, value] of Object.entries(tokens.Primitives)) {
-        const tinyCurrentColor = tinycolor(value.Value);
-        if (!tinyCurrentColor.isValid()) {
+        const parsedColor = parse(value.Value);
+        if (parsedColor === undefined) {
             continue;
         }
-        primitiveLookupMap.set(tinyCurrentColor.toHex8String(), key);
+        primitiveLookupMap.set(formatHex8(parsedColor), key);
     }
     for (const [key, value] of Object.entries(tokens.Theme)) {
         for (const mode of ['Light', 'Dark', 'HCM']) {
             const color = value[mode];
-            if (mode === 'HCM') {
+            if (mode === 'HCM' && HCM_KEYS.includes(color)) {
                 tokens.Theme[key][mode] = `{HCM Theme$${color}}`;
             }
+            else if (mode === 'HCM' && color === 'inherit') {
+                if (value.Light !== value.Dark) {
+                    throw new Error(`Ambiguous inherit: When replacing variable references, the color for '${key}' is 'inherit', but the light and dark colors are different: ${value.Light} and ${value.Dark}`);
+                }
+                tokens.Theme[key][mode] = value.Light;
+            }
             else {
-                const tinyCurrentColor = tinycolor(color);
-                if (!tinyCurrentColor.isValid()) {
+                const parsedCurrentColor = parse(color);
+                if (parsedCurrentColor === undefined) {
                     continue;
                 }
-                const refVariable = primitiveLookupMap.get(tinyCurrentColor.toHex8String());
+                const refVariable = primitiveLookupMap.get(formatHex8(parsedCurrentColor));
                 if (refVariable) {
                     tokens.Theme[key][mode] = `{Primitives$${refVariable}}`;
                 }
             }
         }
     }
+    console.log(tokens);
     return tokens;
 }
 const COLOR_MIX_REGEX = /color-mix\(in srgb, currentColor (\d+)%?, transparent\)/;
@@ -79,14 +107,16 @@ class ColorMix {
     dark;
     constructor(collection, key) {
         const colors = collection[key];
-        this.light = tinycolor(colors.Light);
-        this.dark = tinycolor(colors.Dark);
-        if (!this.light.isValid()) {
+        const light = parse(colors.Light);
+        const dark = parse(colors.Dark);
+        if (light === undefined) {
             throw new Error(`When initializing ColorMix, the light color is invalid: ${colors.Light}`);
         }
-        if (!this.dark.isValid()) {
+        if (dark === undefined) {
             throw new Error(`When initializing ColorMix, the dark color is invalid: ${colors.Dark}`);
         }
+        this.light = light;
+        this.dark = dark;
     }
     isColorMix(str) {
         return COLOR_MIX_REGEX.test(str);
@@ -97,10 +127,8 @@ class ColorMix {
             throw new Error(`When replacing color mix, the color mix is invalid: ${str}`);
         }
         const percentage = parseInt(match[1]);
-        const newColor = this[mode === 'Light' ? 'light' : 'dark']
-            .clone()
-            .setAlpha(percentage / 100)
-            .toHex8String();
+        const baseColor = this[mode === 'Light' ? 'light' : 'dark'];
+        const newColor = formatHex8({ ...baseColor, alpha: percentage / 100 });
         return newColor;
     }
 }

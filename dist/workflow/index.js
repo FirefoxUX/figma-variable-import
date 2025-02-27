@@ -1,5 +1,5 @@
-import { denormalizeRGBA, isFigmaAlias, roundTo } from '../utils.js';
-import tinycolor from 'tinycolor2';
+import { figmaToCulori, isFigmaAlias, roundTo } from '../utils.js';
+import { formatHex } from 'culori';
 import { summary } from './summary.js';
 import Config from '../Config.js';
 export async function documentStats(stats, figCollections) {
@@ -221,9 +221,11 @@ function formatFigmaVariableValue(value, resolvedType, figCollections) {
         return `ALIAS(${value.id})`;
     }
     if (resolvedType === 'COLOR' && typeof value === 'object' && 'r' in value) {
-        const denormalized = denormalizeRGBA(value);
-        const tinyColor = tinycolor(denormalized);
-        return `${tinyColor.toHexString().toUpperCase()} ${roundTo(tinyColor.getAlpha() * 100)}%`;
+        const denormalized = figmaToCulori(value);
+        if (denormalized === undefined) {
+            throw new Error(`When creating the summary: Could not denormalize color value ${JSON.stringify(value)}`);
+        }
+        return `${formatHex(denormalized).toUpperCase()} ${roundTo((denormalized.alpha === undefined ? 1 : denormalized.alpha) * 100, 2)}%`;
     }
     if (resolvedType === 'FLOAT') {
         return roundTo(value, 4).toString();

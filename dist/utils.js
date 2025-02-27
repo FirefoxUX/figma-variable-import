@@ -1,5 +1,5 @@
-import tinycolor from 'tinycolor2';
 import Config from './Config.js';
+import { formatHex8, parse } from 'culori';
 const FIGMA_API_ENDPOINT = 'https://api.figma.com';
 export const FigmaAPIURLs = {
     getVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
@@ -33,21 +33,38 @@ export function roundTwoDecimals(value) {
 export function isFigmaAlias(value) {
     return value !== undefined && typeof value === 'object' && 'type' in value;
 }
-export function normalizeRGBA(rgba) {
+export function culoriToFigma(rgba) {
     return {
-        r: rgba.r / 255,
-        g: rgba.g / 255,
-        b: rgba.b / 255,
-        a: roundTwoDecimals(rgba.a),
+        r: rgba.r,
+        g: rgba.g,
+        b: rgba.b,
+        a: rgba.alpha ?? 1,
     };
 }
-export function denormalizeRGBA(rgba) {
+export function figmaToCulori(rgba) {
+    if (rgba === null ||
+        rgba === undefined ||
+        typeof rgba !== 'object' ||
+        !('r' in rgba) ||
+        !('g' in rgba) ||
+        !('b' in rgba) ||
+        !('a' in rgba) ||
+        typeof rgba.r !== 'number' ||
+        typeof rgba.g !== 'number' ||
+        typeof rgba.b !== 'number' ||
+        typeof rgba.a !== 'number') {
+        return undefined;
+    }
     return {
-        r: Math.floor(rgba.r * 255),
-        g: Math.floor(rgba.g * 255),
-        b: Math.floor(rgba.b * 255),
-        a: rgba.a,
+        mode: 'rgb',
+        r: rgba.r,
+        g: rgba.g,
+        b: rgba.b,
+        alpha: rgba.a,
     };
+}
+export function compareColors(a, b) {
+    return formatHex8(a) === formatHex8(b);
 }
 export const SYMBOL_RESOLVED_TYPE = Symbol('resolvedType');
 export function determineResolvedType(value) {
@@ -57,7 +74,7 @@ export function determineResolvedType(value) {
     if (!isNaN(Number(value))) {
         return 'FLOAT';
     }
-    if (tinycolor(value).isValid()) {
+    if (parse(value) !== undefined) {
         return 'COLOR';
     }
     if (typeof value === 'string') {

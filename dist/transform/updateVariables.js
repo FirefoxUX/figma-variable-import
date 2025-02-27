@@ -1,5 +1,6 @@
-import tinycolor from 'tinycolor2';
-import { isFigmaAlias, normalizeRGBA, denormalizeRGBA, SYMBOL_RESOLVED_TYPE, isCentralAlias, } from '../utils.js';
+import { converter, parse } from 'culori';
+import { isFigmaAlias, culoriToFigma, figmaToCulori, SYMBOL_RESOLVED_TYPE, isCentralAlias, compareColors, } from '../utils.js';
+const rgb = converter('rgb');
 export function updateVariables(uc) {
     for (const collectionName in uc.centralTokens) {
         for (const [variableName, centralValues] of Object.entries(uc.centralTokens[collectionName])) {
@@ -17,11 +18,11 @@ export function updateVariables(uc) {
                     continue;
                 }
                 if (centralValues[SYMBOL_RESOLVED_TYPE] === 'COLOR') {
-                    const centralTiny = tinycolor(centralValue);
-                    if (!centralTiny.isValid()) {
+                    const parsedColor = parse(centralValue);
+                    if (parsedColor === undefined) {
                         throw new Error(`When updating variables: Invalid central color value: ${centralValue} for token ${variableName} in collection ${collectionName}`);
                     }
-                    uc.setVariableValue(figmaVariableData.info.id, figmaVariableData.modeId, normalizeRGBA(centralTiny.toRgb()));
+                    uc.setVariableValue(figmaVariableData.info.id, figmaVariableData.modeId, culoriToFigma(rgb(parsedColor)));
                     continue;
                 }
                 uc.setVariableValue(figmaVariableData.info.id, figmaVariableData.modeId, centralValue);
@@ -61,9 +62,10 @@ function checkIfUpdateRequired(figmaVariableData, centralValue, uc, centralValue
                 requiresUpdate = true;
             }
             else {
-                const centralTiny = tinycolor(centralValue);
-                const figmaTiny = tinycolor(denormalizeRGBA(figmaVariableData.value));
-                if (!figmaTiny.isValid() || !tinycolor.equals(centralTiny, figmaTiny)) {
+                const centralParsed = parse(centralValue);
+                const figmaParsed = figmaToCulori(figmaVariableData.value);
+                if (figmaParsed === undefined ||
+                    !compareColors(centralParsed, figmaParsed)) {
                     requiresUpdate = true;
                 }
             }
