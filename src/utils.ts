@@ -1,7 +1,7 @@
 import { RGBA, VariableAlias, VariableCreate } from '@figma/rest-api-spec'
-import tinycolor from 'tinycolor2'
 import { TypedCentralCollections } from './types.js'
 import Config from './Config.js'
+import { Color, formatHex8, parse, Rgb } from 'culori'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
 
@@ -53,23 +53,43 @@ export function isFigmaAlias(
 }
 
 // Figm expects values between 0 and 1
-export function normalizeRGBA(rgba: RGBA) {
+export function culoriToFigma(rgba: Rgb): RGBA {
   return {
-    r: rgba.r / 255,
-    g: rgba.g / 255,
-    b: rgba.b / 255,
-    a: roundTwoDecimals(rgba.a),
+    r: rgba.r,
+    g: rgba.g,
+    b: rgba.b,
+    a: rgba.alpha ?? 1,
   }
 }
 
-// tinycolors2 expects values between 0 and 255
-export function denormalizeRGBA(rgba: RGBA) {
-  return {
-    r: Math.floor(rgba.r * 255),
-    g: Math.floor(rgba.g * 255),
-    b: Math.floor(rgba.b * 255),
-    a: rgba.a,
+// culori expects values between 0 and 255
+export function figmaToCulori(rgba: unknown): Rgb | undefined {
+  if (
+    rgba === null ||
+    rgba === undefined ||
+    typeof rgba !== 'object' ||
+    !('r' in rgba) ||
+    !('g' in rgba) ||
+    !('b' in rgba) ||
+    !('a' in rgba) ||
+    typeof rgba.r !== 'number' ||
+    typeof rgba.g !== 'number' ||
+    typeof rgba.b !== 'number' ||
+    typeof rgba.a !== 'number'
+  ) {
+    return undefined
   }
+  return {
+    mode: 'rgb',
+    r: rgba.r,
+    g: rgba.g,
+    b: rgba.b,
+    alpha: rgba.a,
+  }
+}
+
+export function compareColors(a: Color, b: Color): boolean {
+  return formatHex8(a) === formatHex8(b)
 }
 
 // create a symbol as they key for the resovled type
@@ -88,7 +108,7 @@ export function determineResolvedType(
     return 'FLOAT'
   }
   // then check if it's a color
-  if (tinycolor(value as string).isValid()) {
+  if (parse(value as string) !== undefined) {
     return 'COLOR'
   }
   // otherwise, check if its a string

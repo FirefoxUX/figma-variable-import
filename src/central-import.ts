@@ -1,5 +1,5 @@
 import Config from './Config.js'
-import tinycolor from 'tinycolor2'
+import { Color, formatHex8, parse } from 'culori'
 
 type RawThemeTokens = { light: string; dark: string; forcedColors: string }
 type RawCentralTokens = {
@@ -131,12 +131,12 @@ function replaceTextColor(tokens: SeparatedTokens): SeparatedTokens {
 function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
   const primitiveLookupMap = new Map<string, string>()
   for (const [key, value] of Object.entries(tokens.Primitives)) {
-    const tinyCurrentColor = tinycolor(value.Value as string)
+    const parsedColor = parse(value.Value as string)
     // skip if it does not contain a color
-    if (!tinyCurrentColor.isValid()) {
+    if (parsedColor === undefined) {
       continue
     }
-    primitiveLookupMap.set(tinyCurrentColor.toHex8String(), key)
+    primitiveLookupMap.set(formatHex8(parsedColor), key)
   }
 
   for (const [key, value] of Object.entries(tokens.Theme)) {
@@ -153,14 +153,14 @@ function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
         }
         tokens.Theme[key][mode] = value.Light
       } else {
-        const tinyCurrentColor = tinycolor(color)
+        const parsedCurrentColor = parse(color)
         // we only do this for colors, under the assumptions that colors are unique
-        if (!tinyCurrentColor.isValid()) {
+        if (parsedCurrentColor === undefined) {
           continue
         }
         // look up the color in the map
         const refVariable = primitiveLookupMap.get(
-          tinyCurrentColor.toHex8String(),
+          formatHex8(parsedCurrentColor),
         )
         if (refVariable) {
           tokens.Theme[key][mode] = `{Primitives$${refVariable}}`
@@ -181,8 +181,8 @@ const COLOR_MIX_REGEX =
  * Class to replace color-mix functions with an actual color based on the mode.
  */
 class ColorMix {
-  light: tinycolor.Instance
-  dark: tinycolor.Instance
+  light: Color
+  dark: Color
 
   /**
    * Creates a new instance of the ColorMix class.
@@ -192,19 +192,22 @@ class ColorMix {
    */
   constructor(collection: SeparatedTokens['Theme'], key: string) {
     const colors = collection[key]
-    this.light = tinycolor(colors.Light)
-    this.dark = tinycolor(colors.Dark)
+    const light = parse(colors.Light)
+    const dark = parse(colors.Dark)
 
-    if (!this.light.isValid()) {
+    if (light === undefined) {
       throw new Error(
         `When initializing ColorMix, the light color is invalid: ${colors.Light}`,
       )
     }
-    if (!this.dark.isValid()) {
+    if (dark === undefined) {
       throw new Error(
         `When initializing ColorMix, the dark color is invalid: ${colors.Dark}`,
       )
     }
+
+    this.light = light
+    this.dark = dark
   }
 
   /**
@@ -233,10 +236,8 @@ class ColorMix {
     }
 
     const percentage = parseInt(match[1])
-    const newColor = this[mode === 'Light' ? 'light' : 'dark']
-      .clone()
-      .setAlpha(percentage / 100)
-      .toHex8String()
+    const baseColor = this[mode === 'Light' ? 'light' : 'dark']
+    const newColor = formatHex8({ ...baseColor, alpha: percentage / 100 })
 
     return newColor
   }

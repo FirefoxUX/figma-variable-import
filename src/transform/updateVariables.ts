@@ -1,14 +1,17 @@
 import { RGBA, VariableAlias } from '@figma/rest-api-spec'
-import tinycolor from 'tinycolor2'
+import { converter, parse } from 'culori'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
   isFigmaAlias,
-  normalizeRGBA,
-  denormalizeRGBA,
+  culoriToFigma,
+  figmaToCulori,
   SYMBOL_RESOLVED_TYPE,
   isCentralAlias,
+  compareColors,
 } from '../utils.js'
 import { FigmaVariableData, TypedCentralVariable } from '../types.js'
+
+const rgb = converter('rgb')
 
 /**
  * Updates the variable values if central values don't match the Figma values.
@@ -61,11 +64,11 @@ export function updateVariables(uc: UpdateConstructor) {
 
         // TYPE 2: The figma value is a color
         if (centralValues[SYMBOL_RESOLVED_TYPE] === 'COLOR') {
-          // for a color we need to convert to a tinycolor and then to RGBA
-          // convert the central value to a tinycolor instance
-          const centralTiny = tinycolor(centralValue as string)
+          // for a color we need to convert to a culori and then to RGBA
+          // convert the central value to a culori object
+          const parsedColor = parse(centralValue as string)
           // the central value one has to be valid, since its our source of truth
-          if (!centralTiny.isValid()) {
+          if (parsedColor === undefined) {
             throw new Error(
               `When updating variables: Invalid central color value: ${centralValue} for token ${variableName} in collection ${collectionName}`,
             )
@@ -74,7 +77,7 @@ export function updateVariables(uc: UpdateConstructor) {
           uc.setVariableValue(
             figmaVariableData.info.id,
             figmaVariableData.modeId,
-            normalizeRGBA(centralTiny.toRgb()),
+            culoriToFigma(rgb(parsedColor)),
           )
           continue
         }
@@ -128,7 +131,7 @@ function checkIfUpdateRequired(
         requiresUpdate = true
       }
     } else {
-      // for colors, we convert both to tinycolor instances and compare
+      // for colors, we convert both to culori objects and compare
       // if figmaVariableData.value is not an object that contains R, G, B, A, we already know it's not a color and it needs to be updated
       if (
         !figmaVariableData.value ||
@@ -137,11 +140,12 @@ function checkIfUpdateRequired(
       ) {
         requiresUpdate = true
       } else {
-        const centralTiny = tinycolor(centralValue as string)
-        const figmaTiny = tinycolor(
-          denormalizeRGBA(figmaVariableData.value as RGBA),
-        )
-        if (!figmaTiny.isValid() || !tinycolor.equals(centralTiny, figmaTiny)) {
+        const centralParsed = parse(centralValue as string)!
+        const figmaParsed = figmaToCulori(figmaVariableData.value as RGBA)
+        if (
+          figmaParsed === undefined ||
+          !compareColors(centralParsed, figmaParsed)
+        ) {
           requiresUpdate = true
         }
       }

@@ -1,8 +1,8 @@
 import { VariableCreate } from '@figma/rest-api-spec'
 import { FigmaCollections, FigmaVariableValue } from '../types.js'
 import { ExtraStats } from '../UpdateConstructor.js'
-import { denormalizeRGBA, isFigmaAlias, roundTo } from '../utils.js'
-import tinycolor from 'tinycolor2'
+import { figmaToCulori, isFigmaAlias, roundTo } from '../utils.js'
+import { formatHex } from 'culori'
 import { summary } from './summary.js'
 import Config from '../Config.js'
 
@@ -297,13 +297,19 @@ function formatFigmaVariableValue(
     // we'll just return the id then
     return `ALIAS(${value.id})`
   }
-  // if color, denormalizeRGBA and open in tinycolor
+  // if color, denormalizeRGBA and open in culori
   if (resolvedType === 'COLOR' && typeof value === 'object' && 'r' in value) {
-    const denormalized = denormalizeRGBA(value)
+    const denormalized = figmaToCulori(value)
     // we want to return the hex and the alpha value seperated (e.g. #000000 24%)
     // the percentage should be rounded to two decimal places
-    const tinyColor = tinycolor(denormalized)
-    return `${tinyColor.toHexString().toUpperCase()} ${roundTo(tinyColor.getAlpha() * 100)}%`
+    if (denormalized === undefined) {
+      throw new Error(
+        `When creating the summary: Could not denormalize color value ${JSON.stringify(
+          value,
+        )}`,
+      )
+    }
+    return `${formatHex(denormalized).toUpperCase()} ${roundTo((denormalized.alpha === undefined ? 1 : denormalized.alpha) * 100, 2)}%`
   }
   // if a float, round to to four decimal places
   if (resolvedType === 'FLOAT') {
