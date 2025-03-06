@@ -22,10 +22,11 @@ const HCM_KEYS = [
     'VisitedText',
 ];
 export async function getCentralCollectionValues() {
-    return downloadFromCentral()
+    const x = await downloadFromCentral()
         .then(separateCentralTokens)
         .then(replaceTextColor)
         .then(replaceVariableReferences);
+    return x;
 }
 async function downloadFromCentral() {
     return (await fetch(Config.centralSource).then((res) => res.json()));
@@ -56,9 +57,12 @@ function separateCentralTokens(rawCentralTokens) {
 function replaceTextColor(tokens) {
     const colorMixTf = new ColorMix(tokens.Theme, Config.centralCurrentColorAlias);
     for (const [key, value] of Object.entries(tokens.Theme)) {
-        for (const mode of ['Light', 'Dark']) {
+        for (const mode of ['Light', 'Dark', 'HCM']) {
             const color = value[mode];
-            if (colorMixTf.isColorMix(color)) {
+            if (color === 'inherit') {
+                tokens.Theme[key][mode] = tryResolveInheritance(tokens, key, mode);
+            }
+            if (colorMixTf.isColorMix(color) && mode !== 'HCM') {
                 tokens.Theme[key][mode] = colorMixTf.replaceColorMix(mode, color);
             }
         }
@@ -98,7 +102,6 @@ function replaceVariableReferences(tokens) {
             }
         }
     }
-    console.log(tokens);
     return tokens;
 }
 const COLOR_MIX_REGEX = /color-mix\(in srgb, currentColor (\d+)%?, transparent\)/;
@@ -131,4 +134,21 @@ class ColorMix {
         const newColor = formatHex8({ ...baseColor, alpha: percentage / 100 });
         return newColor;
     }
+}
+function tryResolveInheritance(tokens, tokenName, mode) {
+    const parts = tokenName.split('/');
+    const lastPart = parts[parts.length - 1];
+    for (let i = parts.length - 2; i >= 0; i--) {
+        const key = [...parts.slice(0, i), lastPart].join('/');
+        if (tokens.Theme[key] && tokens.Theme[key][mode] !== 'inherit') {
+            return tokens.Theme[key][mode];
+        }
+    }
+    for (let i = parts.length - 1; i > 0; i--) {
+        const key = parts.slice(0, i).join('/');
+        if (tokens.Theme[key] && tokens.Theme[key][mode] !== 'inherit') {
+            return tokens.Theme[key][mode];
+        }
+    }
+    throw new Error(`Central Import: When trying to find a replacement for 'inherit' in ${tokenName}, no value was found`);
 }

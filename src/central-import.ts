@@ -36,10 +36,12 @@ const HCM_KEYS = [
 ]
 
 export async function getCentralCollectionValues() {
-  return downloadFromCentral()
+  const x = await downloadFromCentral()
     .then(separateCentralTokens)
     .then(replaceTextColor)
     .then(replaceVariableReferences)
+
+  return x
 }
 
 /**
@@ -105,13 +107,17 @@ function separateCentralTokens(
 function replaceTextColor(tokens: SeparatedTokens): SeparatedTokens {
   const colorMixTf = new ColorMix(tokens.Theme, Config.centralCurrentColorAlias)
   for (const [key, value] of Object.entries(tokens.Theme)) {
-    for (const mode of ['Light', 'Dark'] as const) {
+    for (const mode of ['Light', 'Dark', 'HCM'] as const) {
       const color = value[mode]
-      if (colorMixTf.isColorMix(color)) {
+      if (color === 'inherit') {
+        tokens.Theme[key][mode] = tryResolveInheritance(tokens, key, mode)
+      }
+      if (colorMixTf.isColorMix(color) && mode !== 'HCM') {
         tokens.Theme[key][mode] = colorMixTf.replaceColorMix(mode, color)
       }
     }
   }
+
   return tokens
 }
 
@@ -168,8 +174,6 @@ function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
       }
     }
   }
-
-  console.log(tokens)
 
   return tokens
 }
@@ -241,4 +245,44 @@ class ColorMix {
 
     return newColor
   }
+}
+
+/**
+ * Attempts to resolve the inheritance of a token by searching through its hierarchical structure.
+ *
+ * @param tokens - An object containing separated tokens categorized by themes.
+ * @param tokenName - The name of the token to resolve, represented as a string with parts separated by '/'.
+ * @param mode - The mode of the theme to resolve ('Light', 'Dark', or 'HCM').
+ * @returns The resolved token value for the specified mode.
+ * @throws Will throw an error if no value is found for the given token name and mode.
+ */
+function tryResolveInheritance(
+  tokens: SeparatedTokens,
+  tokenName: string,
+  mode: 'Light' | 'Dark' | 'HCM',
+) {
+  const parts = tokenName.split('/')
+
+  // First pass: keep the last element and pop off the second to last one and then the one before that
+  // (so if the token is button/color/ghost/disabled, we will first try button/color/disabled, then button/disabled, etc.)
+  const lastPart = parts[parts.length - 1]
+  for (let i = parts.length - 2; i >= 0; i--) {
+    const key = [...parts.slice(0, i), lastPart].join('/')
+    if (tokens.Theme[key] && tokens.Theme[key][mode] !== 'inherit') {
+      return tokens.Theme[key][mode]
+    }
+  }
+
+  // Second pass: current approach of just removing the last and then the last
+  // (so if the token is button/color/ghost/disabled, we will first try button/color/ghost, then button/color, etc.)
+  for (let i = parts.length - 1; i > 0; i--) {
+    const key = parts.slice(0, i).join('/')
+    if (tokens.Theme[key] && tokens.Theme[key][mode] !== 'inherit') {
+      return tokens.Theme[key][mode]
+    }
+  }
+
+  throw new Error(
+    `Central Import: When trying to find a replacement for 'inherit' in ${tokenName}, no value was found`,
+  )
 }
