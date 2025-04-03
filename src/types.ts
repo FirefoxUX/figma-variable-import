@@ -16,7 +16,7 @@ import { SYMBOL_RESOLVED_TYPE } from './utils.js'
  * the value is the value of the variable in that mode
  */
 export type CentralVariable = {
-  [key: string]: number | boolean | string
+  [key: string]: number | boolean | string | any
 }
 /**
  * Extends the {@link CentralVariable} type by adding the resolved type

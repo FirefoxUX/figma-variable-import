@@ -410,6 +410,18 @@ function inferResolvedTypes(
   }
   // We'll try to resolve the variables that we couldn't resolve before.
   // If they can't be resolved this time, we'll throw an error.
+
+  for (const { collectionName, variableName } of [...queue]) {
+    resolveVariableTypes(collectionName, variableName, true)
+  }
+  for (const { collectionName, variableName } of [...queue]) {
+    resolveVariableTypes(collectionName, variableName, true)
+  }
+  for (const { collectionName, variableName } of [...queue]) {
+    resolveVariableTypes(collectionName, variableName, true)
+  }
+  // We'll try to resolve the variables that we couldn't resolve before.
+  // If they can't be resolved this time, we'll throw an error.
   for (const { collectionName, variableName } of queue) {
     resolveVariableTypes(collectionName, variableName, false)
   }

@@ -6,13 +6,11 @@
 
 # When encountering a 'color-mix(in srgb, currentColor 7%, transparent)' value, it gets replaced by an actual color
 # The source for the currentColor value is the value of the centralCurrentColorAlias
-centralCurrentColorAlias: 'text/color'
+centralCurrentColorAlias: '{Theme$text/color}'
 # URL for the central source of the design tokens
-centralSource: 'https://hg.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma.json'
-# The following values from the central source will overriden
-centralOverrides:
-  'text/color/deemphasized#forcedColors': CanvasText
-  'text/color/error#forcedColors': CanvasText
+centralSource:
+  primitives: 'TBD'
+  theme: 'TBD'
 
 ######################
 # Deprecation config #
@@ -28,14 +26,6 @@ figmaOnlyVariables:
   - 'background/color/canvas-v2'
   - 'background/color/backdrop'
   - 'button/background/color/primary/deemphasized'
-  - 'tab/shadow/color/1'
-  - 'tab/shadow/color/2'
-  - 'card/shadow/color/1'
-  - 'card/shadow/color/2'
-  - 'card/shadow/hover/color/1'
-  - 'card/shadow/hover/color/2'
-  - 'panel/shadow/color/1'
-  - 'panel/shadow/color/2'
 
 ######################
 # Debugging settings #
