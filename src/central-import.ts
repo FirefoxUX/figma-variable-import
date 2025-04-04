@@ -12,6 +12,7 @@ type RawThemeValue =
   | RawPrimitiveValue
 
 type RawCentralTokens = {
+  colors: Record<string, RawPrimitiveValue>
   primitives: Record<string, RawPrimitiveValue>
   theme: Record<string, RawThemeValue>
 }
@@ -24,6 +25,7 @@ type ThemeTokens = {
 }
 
 type CentralTokens = {
+  Colors: Record<string, PrimitiveTokens>
   Primitives: Record<string, PrimitiveTokens>
   Theme: Record<string, ThemeTokens>
 }
@@ -72,11 +74,13 @@ export async function getCentralCollectionValues(): Promise<CentralAndRelativeTo
 async function downloadFromCentral() {
   // download each json from from the links in Config.centralSource with Promise.all
   try {
-    const [primitives, theme] = await Promise.all([
+    const [colors, primitives, theme] = await Promise.all([
+      fetch(Config.centralSource.colors).then((res) => res.json()),
       fetch(Config.centralSource.primitives).then((res) => res.json()),
       fetch(Config.centralSource.theme).then((res) => res.json()),
     ])
     const rawCentralTokens: RawCentralTokens = {
+      colors,
       primitives,
       theme,
     }
@@ -121,8 +125,16 @@ function normalizeNames(rawCentralTokens: RawCentralTokens): CentralTokens {
       { Value: value },
     ]),
   )
+  // primitives and relative values just need to be wrapped in an object
+  const wrappedColors = Object.fromEntries(
+    Object.entries(rawCentralTokens.colors).map(([key, value]) => [
+      key,
+      { Value: value },
+    ]),
+  )
 
   return {
+    Colors: wrappedColors,
     Primitives: wrappedPrimitives,
     Theme: themeTokens,
   }

@@ -1,13 +1,15 @@
 import { RGBA, VariableAlias, VariableCreate } from '@figma/rest-api-spec'
-import { TypedCentralCollections } from './types.js'
+import { FigmaResultCollection, TypedCentralCollections } from './types.js'
 import Config from './Config.js'
 import { Color, formatHex8, parse, Rgb } from 'culori'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
 
 export const FigmaAPIURLs = {
-  getVariables: (fileId: string) =>
+  getLocalVariables: (fileId: string) =>
     `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
+  getPublishedVariables: (fileId: string) =>
+    `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/published`,
   postVariables: (fileId: string) =>
     `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables`,
 }
@@ -52,7 +54,7 @@ export function isFigmaAlias(
   return value !== undefined && typeof value === 'object' && 'type' in value
 }
 
-// Figm expects values between 0 and 1
+// Figma expects values between 0 and 1
 export function culoriToFigma(rgba: Rgb): RGBA {
   return {
     r: rgba.r,
@@ -143,6 +145,7 @@ export function extractAliasParts(
 export function determineResolvedTypeWithAlias(
   collections: TypedCentralCollections,
   value: string | number | boolean,
+  fileVariables?: FigmaResultCollection,
 ): VariableCreate['resolvedType'] | null {
   const resolvedType = determineResolvedType(value)
   if (resolvedType !== 'STRING') return resolvedType
@@ -152,6 +155,15 @@ export function determineResolvedTypeWithAlias(
     const { collection, variable } = aliasParts
     if (collections[collection]?.[variable]) {
       return collections[collection][variable][SYMBOL_RESOLVED_TYPE]
+    }
+    if (fileVariables && fileVariables[collection]) {
+      const variableData = fileVariables[collection][variable]
+      if (variableData && 'id' in variableData) {
+        const type = variableData.resolvedDataType
+        if (type) {
+          return type
+        }
+      }
     }
     return null
   }

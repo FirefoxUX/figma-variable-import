@@ -6,8 +6,10 @@ const FIGMA_URL_REGEX =
 
 class Config {
   public readonly figmaFileId: string
+  public readonly figmaColorsFileId: string
   public readonly centralCurrentColorAlias: string
   public readonly centralSource: {
+    colors: string
     primitives: string
     theme: string
   }
@@ -26,6 +28,9 @@ class Config {
 
     this.figmaFileId = this.parseFigmaUrl(
       config.env.FIGMA_URL || process.env.INPUT_FIGMA_URL,
+    )
+    this.figmaColorsFileId = this.parseFigmaUrl(
+      config.env.FIGMA_COLORS_URL || process.env.INPUT_FIGMA_COLORS_URL,
     )
     this.centralCurrentColorAlias = config.centralCurrentColorAlias
     this.centralSource = config.centralSource
@@ -75,6 +80,9 @@ class Config {
     if (this.figmaFileId === undefined || this.figmaFileId === '') {
       throw new Error('Error loading config: figmaFileId is undefined')
     }
+    if (this.figmaColorsFileId === undefined || this.figmaColorsFileId === '') {
+      throw new Error('Error loading config: figmaFileId is undefined')
+    }
     if (this.centralCurrentColorAlias === undefined) {
       throw new Error(
         'Error loading config: centralCurrentColorAlias is undefined',
@@ -84,6 +92,7 @@ class Config {
       throw new Error('Error loading config: centralSource is undefined')
     }
     if (
+      this.centralSource.colors === undefined ||
       this.centralSource.primitives === undefined ||
       this.centralSource.theme === undefined
     ) {

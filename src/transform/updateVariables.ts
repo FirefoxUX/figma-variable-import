@@ -1,4 +1,4 @@
-import { RGBA, VariableAlias } from '@figma/rest-api-spec'
+import { LocalVariable, RGBA, VariableAlias } from '@figma/rest-api-spec'
 import { converter, parse } from 'culori'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
@@ -8,8 +8,14 @@ import {
   SYMBOL_RESOLVED_TYPE,
   isCentralAlias,
   compareColors,
+  extractAliasParts,
 } from '../utils.js'
-import { FigmaVariableData, TypedCentralVariable } from '../types.js'
+import {
+  FigmaResultCollection,
+  FigmaVariableData,
+  TypedCentralCollections,
+  TypedCentralVariable,
+} from '../types.js'
 
 const rgb = converter('rgb')
 
@@ -18,11 +24,14 @@ const rgb = converter('rgb')
  *
  * @param uc - An UpdateConstructor instance.
  */
-export function updateVariables(uc: UpdateConstructor) {
-  for (const collectionName in uc.centralTokens) {
+export function updateVariables(
+  uc: UpdateConstructor,
+  tokens: TypedCentralCollections,
+) {
+  for (const collectionName in tokens) {
     // iterate over all values in the current collection
     for (const [variableName, centralValues] of Object.entries(
-      uc.centralTokens[collectionName],
+      tokens[collectionName],
     )) {
       // iterate over keys in centralValues
       for (const [modeName, centralValue] of Object.entries(centralValues)) {

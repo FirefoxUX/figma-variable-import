@@ -9,6 +9,7 @@
 centralCurrentColorAlias: '{Theme$text/color}'
 # URL for the central source of the design tokens
 centralSource:
+  colors: 'TBD'
   primitives: 'TBD'
   theme: 'TBD'
 

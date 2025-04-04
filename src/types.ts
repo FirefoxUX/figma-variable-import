@@ -1,6 +1,7 @@
 import {
   LocalVariable,
   LocalVariableCollection,
+  PublishedVariable,
   RGBA,
   VariableAlias,
   VariableCreate,
@@ -68,6 +69,10 @@ export type FigmaCollection = {
 
 export type FigmaCollections = {
   [key: string]: FigmaCollection
+}
+
+export type FigmaResultCollection = {
+  [key: string]: Record<string, PublishedVariable>
 }
 
 export type FigmaVariableData = {

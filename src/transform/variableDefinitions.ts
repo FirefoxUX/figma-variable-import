@@ -1,5 +1,9 @@
 import UpdateConstructor from '../UpdateConstructor.js'
-import { CentralCollection, FigmaCollection } from '../types.js'
+import {
+  CentralCollection,
+  FigmaCollection,
+  TypedCentralCollections,
+} from '../types.js'
 import Config from '../Config.js'
 import { SYMBOL_RESOLVED_TYPE } from '../utils.js'
 
@@ -10,17 +14,19 @@ import { SYMBOL_RESOLVED_TYPE } from '../utils.js'
  *
  * @param uc - The UpdateConstructor object containing the central and Figma tokens.
  */
-export function updateVariableDefinitions(uc: UpdateConstructor) {
-  for (const collectionLabel in uc.centralTokens) {
+export function updateVariableDefinitions(
+  uc: UpdateConstructor,
+  tokens: TypedCentralCollections,
+) {
+  for (const collectionLabel in tokens) {
     const sets = generateVariableSets(
-      uc.centralTokens[collectionLabel],
+      tokens[collectionLabel],
       uc.figmaTokens[collectionLabel],
     )
     // Create variables that are only in the central collection
     for (const key of sets.onlyInCentral) {
       // we need to determine the type of the variable
-      const resolvedType =
-        uc.centralTokens[collectionLabel][key][SYMBOL_RESOLVED_TYPE]
+      const resolvedType = tokens[collectionLabel][key][SYMBOL_RESOLVED_TYPE]
       uc.createVariable(key, collectionLabel, resolvedType)
     }
 
