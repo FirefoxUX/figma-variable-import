@@ -9,7 +9,7 @@ import { addModesDefinitions } from './transform/modeDefinitions.js'
 import { updateVariableDefinitions } from './transform/variableDefinitions.js'
 import { updateVariables } from './transform/updateVariables.js'
 import { documentError, documentStats } from './workflow/index.js'
-import { constructRelativeData } from './constructRelativeData.js'
+import { constructRelativeData } from './relative-transform.js'
 
 async function run() {
   const { meta: figmaData } = await fetchFigmaAPI<GetLocalVariablesResponse>(
