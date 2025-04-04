@@ -91,9 +91,6 @@ function processSurfaceReferences(
     }
     const [firstSegment, ...remainingSegments] = relativeKey.split('/')
     Object.entries(newReferences).forEach(([surface, newReferenceKey]) => {
-      console.log(
-        `Looking up ${relativeKey} for ${surface} with ${newReferenceKey}`,
-      )
       const newRelativeKey = [firstSegment, surface, ...remainingSegments].join(
         '/',
       )
