@@ -148,7 +148,7 @@ class Summary {
 
     // if there is no file path, print to console
     if (!filePath) {
-      console.log(
+      console.info(
         `~~~ SUMMARY ~~~${EOL}${this._buffer}${EOL}~~~ END SUMMARY ~~~`,
       )
       return this.emptyBuffer()

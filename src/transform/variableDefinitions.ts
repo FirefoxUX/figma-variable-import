@@ -16,6 +16,7 @@ export function updateVariableDefinitions(uc: UpdateConstructor) {
       uc.centralTokens[collectionLabel],
       uc.figmaTokens[collectionLabel],
     )
+
     // Create variables that are only in the central collection
     for (const key of sets.onlyInCentral) {
       // we need to determine the type of the variable

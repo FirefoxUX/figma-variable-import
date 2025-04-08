@@ -349,12 +349,11 @@ function inferResolvedTypes(
   centralTokens: CentralCollections,
 ): TypedCentralCollections {
   const typedCentralTokens: TypedCentralCollections = {}
-  const queue: Array<{ collectionName: string; variableName: string }> = []
+  let queue: Array<{ collectionName: string; variableName: string }> = []
 
   const resolveVariableTypes = (
     collectionName: string,
     variableName: string,
-    addToQueue: boolean,
   ) => {
     const variable = centralTokens[collectionName][variableName]
     let lastResolvedType: VariableCreate['resolvedType'] | undefined = undefined
@@ -366,14 +365,8 @@ function inferResolvedTypes(
         value,
       )
       if (resolvedType === null) {
-        if (addToQueue) {
-          queue.push({ collectionName, variableName })
-          return
-        } else {
-          throw new Error(
-            `When trying to infer variable types: Variable '${variableName}' in collection '${collectionName}' could not be resolved (variable value: ${value})`,
-          )
-        }
+        queue.push({ collectionName, variableName })
+        return
       }
       if (lastResolvedType && lastResolvedType !== resolvedType) {
         throw new Error(
@@ -405,25 +398,26 @@ function inferResolvedTypes(
   for (const collectionName in centralTokens) {
     const collection = centralTokens[collectionName]
     for (const variableName in collection) {
-      resolveVariableTypes(collectionName, variableName, true)
+      resolveVariableTypes(collectionName, variableName)
     }
   }
-  // We'll try to resolve the variables that we couldn't resolve before.
-  // If they can't be resolved this time, we'll throw an error.
 
-  for (const { collectionName, variableName } of [...queue]) {
-    resolveVariableTypes(collectionName, variableName, true)
+  const LOOP_LIMIT = 10
+  let loopCounter = LOOP_LIMIT
+  // There might be some variables that are not resolved yet, so we need to go through the queue
+  // as long as there are variables in the queue and we have not reached the loop limit
+  while (queue.length > 0 && loopCounter > 0) {
+    const queueCopy = [...queue]
+    queue = []
+    for (const { collectionName, variableName } of queueCopy) {
+      resolveVariableTypes(collectionName, variableName)
+    }
+    loopCounter--
   }
-  for (const { collectionName, variableName } of [...queue]) {
-    resolveVariableTypes(collectionName, variableName, true)
-  }
-  for (const { collectionName, variableName } of [...queue]) {
-    resolveVariableTypes(collectionName, variableName, true)
-  }
-  // We'll try to resolve the variables that we couldn't resolve before.
-  // If they can't be resolved this time, we'll throw an error.
-  for (const { collectionName, variableName } of queue) {
-    resolveVariableTypes(collectionName, variableName, false)
+  if (loopCounter === 0) {
+    throw new Error(
+      `When trying to infer variable types: There are still variables that could not be resolved after ${LOOP_LIMIT} iterations.`,
+    )
   }
 
   if (queue.length > 0) {
