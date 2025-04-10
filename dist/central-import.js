@@ -1,5 +1,5 @@
+import { customParse, formatHex8 } from './color.js';
 import Config from './Config.js';
-import { formatHex8, parse } from 'culori';
 const HCM_KEYS = [
     'ActiveText',
     'ButtonBorder',
@@ -72,7 +72,7 @@ function replaceTextColor(tokens) {
 function replaceVariableReferences(tokens) {
     const primitiveLookupMap = new Map();
     for (const [key, value] of Object.entries(tokens.Primitives)) {
-        const parsedColor = parse(value.Value);
+        const parsedColor = customParse(value.Value);
         if (parsedColor === undefined) {
             continue;
         }
@@ -91,7 +91,7 @@ function replaceVariableReferences(tokens) {
                 tokens.Theme[key][mode] = value.Light;
             }
             else {
-                const parsedCurrentColor = parse(color);
+                const parsedCurrentColor = customParse(color);
                 if (parsedCurrentColor === undefined) {
                     continue;
                 }
@@ -110,8 +110,8 @@ class ColorMix {
     dark;
     constructor(collection, key) {
         const colors = collection[key];
-        const light = parse(colors.Light);
-        const dark = parse(colors.Dark);
+        const light = customParse(colors.Light);
+        const dark = customParse(colors.Dark);
         if (light === undefined) {
             throw new Error(`When initializing ColorMix, the light color is invalid: ${colors.Light}`);
         }
