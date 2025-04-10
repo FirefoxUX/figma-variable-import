@@ -1,7 +1,7 @@
 import { RGBA, VariableAlias, VariableCreate } from '@figma/rest-api-spec'
 import { TypedCentralCollections } from './types.js'
 import Config from './Config.js'
-import { Color, formatHex8, parse, Rgb } from 'culori'
+import { Color, customParse, formatHex8, type Rgb } from './color.js'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
 
@@ -108,7 +108,7 @@ export function determineResolvedType(
     return 'FLOAT'
   }
   // then check if it's a color
-  if (parse(value as string) !== undefined) {
+  if (customParse(value as string) !== undefined) {
     return 'COLOR'
   }
   // otherwise, check if its a string

@@ -1,5 +1,5 @@
+import { customParse, Color, formatHex8 } from './color.js'
 import Config from './Config.js'
-import { Color, formatHex8, parse } from 'culori'
 
 type RawThemeTokens = { light: string; dark: string; forcedColors: string }
 type RawCentralTokens = {
@@ -137,7 +137,7 @@ function replaceTextColor(tokens: SeparatedTokens): SeparatedTokens {
 function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
   const primitiveLookupMap = new Map<string, string>()
   for (const [key, value] of Object.entries(tokens.Primitives)) {
-    const parsedColor = parse(value.Value as string)
+    const parsedColor = customParse(value.Value as string)
     // skip if it does not contain a color
     if (parsedColor === undefined) {
       continue
@@ -159,7 +159,7 @@ function replaceVariableReferences(tokens: SeparatedTokens): SeparatedTokens {
         }
         tokens.Theme[key][mode] = value.Light
       } else {
-        const parsedCurrentColor = parse(color)
+        const parsedCurrentColor = customParse(color)
         // we only do this for colors, under the assumptions that colors are unique
         if (parsedCurrentColor === undefined) {
           continue
@@ -196,8 +196,8 @@ class ColorMix {
    */
   constructor(collection: SeparatedTokens['Theme'], key: string) {
     const colors = collection[key]
-    const light = parse(colors.Light)
-    const dark = parse(colors.Dark)
+    const light = customParse(colors.Light)
+    const dark = customParse(colors.Dark)
 
     if (light === undefined) {
       throw new Error(
