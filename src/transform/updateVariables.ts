@@ -10,7 +10,7 @@ import {
   compareColors,
 } from '../utils.js'
 import { FigmaVariableData, TypedCentralVariable } from '../types.js'
-import { customParse } from '@src/color.js'
+import { customParse } from '../color.js'
 
 const rgb = converter('rgb')
 

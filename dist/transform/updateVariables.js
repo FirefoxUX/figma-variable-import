@@ -1,6 +1,6 @@
 import { converter, parse } from 'culori';
 import { isFigmaAlias, culoriToFigma, figmaToCulori, SYMBOL_RESOLVED_TYPE, isCentralAlias, compareColors, } from '../utils.js';
-import { customParse } from '@src/color.js';
+import { customParse } from '../color.js';
 const rgb = converter('rgb');
 export function updateVariables(uc) {
     for (const collectionName in uc.centralTokens) {

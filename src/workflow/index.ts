@@ -4,7 +4,7 @@ import { ExtraStats } from '../UpdateConstructor.js'
 import { figmaToCulori, isFigmaAlias, roundTo } from '../utils.js'
 import { summary } from './summary.js'
 import Config from '../Config.js'
-import { formatHex } from '@src/color.js'
+import { formatHex } from '../color.js'
 
 type SlackWorkflowStats = Record<keyof Omit<ExtraStats, 'result'>, number> & {
   actionURL: string
