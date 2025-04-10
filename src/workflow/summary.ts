@@ -397,7 +397,8 @@ class Summary {
   ): Summary {
     const element = text
       .split(EOL)
-      .map((line) => `> ${line}`)
+      .map((line) => `> ${line.trim()}`)
+      .filter((line) => line !== '>')
       .join(EOL)
     const alert = `> [!${type.toUpperCase()}]${EOL}${element}`
     return this.addRaw(alert).addEOL()
