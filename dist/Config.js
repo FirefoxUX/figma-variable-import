@@ -5,7 +5,6 @@ class Config {
     figmaFileId;
     centralCurrentColorAlias;
     centralSource;
-    centralOverrides;
     figmaOnlyVariables;
     figmaAccessToken;
     slackWebhookUrlSuccess;
@@ -19,7 +18,6 @@ class Config {
         this.figmaFileId = this.parseFigmaUrl(config.env.FIGMA_URL || process.env.INPUT_FIGMA_URL);
         this.centralCurrentColorAlias = config.centralCurrentColorAlias;
         this.centralSource = config.centralSource;
-        this.centralOverrides = config.centralOverrides;
         this.figmaOnlyVariables = config.figmaOnlyVariables;
         this.figmaAccessToken =
             config.env.FIGMA_ACCESS_TOKEN || process.env.INPUT_FIGMA_ACCESS_TOKEN;
@@ -53,10 +51,6 @@ class Config {
             return match[2];
         }
     }
-    potentiallyOverride(tokenName, tokenMode) {
-        const searchKey = tokenMode ? `${tokenName}#${tokenMode}` : tokenName;
-        return this.centralOverrides[searchKey];
-    }
     testConfig() {
         if (this.figmaFileId === undefined || this.figmaFileId === '') {
             throw new Error('Error loading config: figmaFileId is undefined');
@@ -67,19 +61,10 @@ class Config {
         if (this.centralSource === undefined) {
             throw new Error('Error loading config: centralSource is undefined');
         }
-        if (this.centralOverrides === undefined) {
-            throw new Error('Error loading config: centralOverrides is undefined');
-        }
-        else {
-            if (typeof this.centralOverrides !== 'object') {
-                throw new Error('Error loading config: centralOverrides is not an object');
-            }
-            if (!Object.keys(this.centralOverrides).every((k) => typeof k === 'string')) {
-                throw new Error('Error loading config: centralOverrides keys are not strings');
-            }
-            if (!Object.values(this.centralOverrides).every((v) => typeof v === 'string')) {
-                throw new Error('Error loading config: centralOverrides values are not strings');
-            }
+        if (this.centralSource.colors === undefined ||
+            this.centralSource.primitives === undefined ||
+            this.centralSource.theme === undefined) {
+            throw new Error('Error loading config: centralSource is not valid');
         }
         if (this.figmaOnlyVariables !== undefined) {
             if (!Array.isArray(this.figmaOnlyVariables)) {

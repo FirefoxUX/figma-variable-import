@@ -7,8 +7,11 @@ const FIGMA_URL_REGEX =
 class Config {
   public readonly figmaFileId: string
   public readonly centralCurrentColorAlias: string
-  public readonly centralSource: string
-  public readonly centralOverrides: { [key: string]: string }
+  public readonly centralSource: {
+    colors: string
+    primitives: string
+    theme: string
+  }
   public readonly figmaOnlyVariables: string[] | undefined
   public readonly figmaAccessToken: string
   public readonly slackWebhookUrlSuccess: string | undefined
@@ -27,7 +30,6 @@ class Config {
     )
     this.centralCurrentColorAlias = config.centralCurrentColorAlias
     this.centralSource = config.centralSource
-    this.centralOverrides = config.centralOverrides
     this.figmaOnlyVariables = config.figmaOnlyVariables
 
     // Environment variables (can be overriden by config.yaml)
@@ -70,11 +72,6 @@ class Config {
     }
   }
 
-  public potentiallyOverride(tokenName: string, tokenMode?: string): string {
-    const searchKey = tokenMode ? `${tokenName}#${tokenMode}` : tokenName
-    return this.centralOverrides[searchKey]
-  }
-
   private testConfig() {
     if (this.figmaFileId === undefined || this.figmaFileId === '') {
       throw new Error('Error loading config: figmaFileId is undefined')
@@ -87,32 +84,13 @@ class Config {
     if (this.centralSource === undefined) {
       throw new Error('Error loading config: centralSource is undefined')
     }
-    if (this.centralOverrides === undefined) {
-      throw new Error('Error loading config: centralOverrides is undefined')
-    } else {
-      if (typeof this.centralOverrides !== 'object') {
-        throw new Error(
-          'Error loading config: centralOverrides is not an object',
-        )
-      }
-      if (
-        !Object.keys(this.centralOverrides).every((k) => typeof k === 'string')
-      ) {
-        throw new Error(
-          'Error loading config: centralOverrides keys are not strings',
-        )
-      }
-      if (
-        !Object.values(this.centralOverrides).every(
-          (v) => typeof v === 'string',
-        )
-      ) {
-        throw new Error(
-          'Error loading config: centralOverrides values are not strings',
-        )
-      }
+    if (
+      this.centralSource.colors === undefined ||
+      this.centralSource.primitives === undefined ||
+      this.centralSource.theme === undefined
+    ) {
+      throw new Error('Error loading config: centralSource is not valid')
     }
-
     if (this.figmaOnlyVariables !== undefined) {
       if (!Array.isArray(this.figmaOnlyVariables)) {
         throw new Error(

@@ -3,23 +3,26 @@ import Config from './Config.js'
 import { getCentralCollectionValues } from './central-import.js'
 import { CentralCollections, FigmaCollections } from './types.js'
 import { fetchFigmaAPI, FigmaAPIURLs } from './utils.js'
-import { HCM_MAP, OPERATING_SYSTEM_MAP, SURFACE_MAP } from './imports.js'
+import { HCM_MAP } from './imports.js'
 import UpdateConstructor from './UpdateConstructor.js'
 import { addModesDefinitions } from './transform/modeDefinitions.js'
 import { updateVariableDefinitions } from './transform/variableDefinitions.js'
 import { updateVariables } from './transform/updateVariables.js'
 import { documentError, documentStats } from './workflow/index.js'
+import { constructRelativeData } from './relative-transform.js'
 
 async function run() {
   const { meta: figmaData } = await fetchFigmaAPI<GetLocalVariablesResponse>(
     FigmaAPIURLs.getVariables(Config.figmaFileId),
   )
 
+  const centralData = await getCentralCollectionValues()
+  const relativeData = constructRelativeData(centralData.relative)
+
   const centralTokens: CentralCollections = {
     'HCM Theme': HCM_MAP,
-    'Operating System': OPERATING_SYSTEM_MAP,
-    ...(await getCentralCollectionValues()),
-    Surface: SURFACE_MAP,
+    ...centralData.central,
+    ...relativeData,
   }
 
   const figmaTokens = normalizeFigmaTokens(figmaData)
