@@ -1,5 +1,6 @@
-import { parse, formatHex8, formatHex } from 'culori';
-export { formatHex8, formatHex };
+import { parse, formatHex8, formatHex, converter, } from 'culori';
+const rgb = converter('rgb');
+export { formatHex8, formatHex, rgb };
 export const customParse = (...args) => {
     const result = parse(...args);
     if (result?.mode === 'oklch') {

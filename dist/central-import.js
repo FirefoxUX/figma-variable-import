@@ -1,123 +1,165 @@
 import { customParse, formatHex8 } from './color.js';
 import Config from './Config.js';
-const HCM_KEYS = [
-    'ActiveText',
-    'ButtonBorder',
-    'ButtonFace',
-    'ButtonText',
-    'Canvas',
-    'CanvasText',
-    'Field',
-    'FieldText',
-    'GrayText',
-    'Highlight',
-    'HighlightText',
-    'LinkText',
-    'Mark',
-    'MarkText',
-    'SelectedItem',
-    'SelectedItemText',
-    'AccentColor',
-    'AccentColorText',
-    'VisitedText',
-];
+import { extractAliasParts } from './utils.js';
 export async function getCentralCollectionValues() {
-    const x = await downloadFromCentral()
-        .then(separateCentralTokens)
+    const result = await downloadFromCentral()
+        .then(normalizeNames)
         .then(replaceTextColor)
-        .then(replaceVariableReferences);
-    return x;
+        .then(filterRelativeUnits);
+    return result;
 }
 async function downloadFromCentral() {
-    return (await fetch(Config.centralSource).then((res) => res.json()));
+    try {
+        const [colors, primitives, theme] = await Promise.all([
+            fetch(Config.centralSource.colors).then((res) => res.json()),
+            fetch(Config.centralSource.primitives).then((res) => res.json()),
+            fetch(Config.centralSource.theme).then((res) => res.json()),
+        ]);
+        const rawCentralTokens = {
+            colors,
+            primitives,
+            theme,
+        };
+        return rawCentralTokens;
+    }
+    catch (error) {
+        throw new Error(`Central Import: When downloading from central, the download failed: ${error}`);
+    }
 }
-function separateCentralTokens(rawCentralTokens) {
-    return Object.entries(rawCentralTokens).reduce((acc, [key, value]) => {
-        if (typeof value === 'string') {
-            acc.Primitives[key] = {
-                Value: Config.potentiallyOverride(key) || value,
+function normalizeNames(rawCentralTokens) {
+    const themeTokens = Object.entries(rawCentralTokens.theme).reduce((acc, [key, value]) => {
+        if (typeof value !== 'object') {
+            acc[key] = {
+                Light: value,
+                Dark: value,
+                HCM: value,
             };
+            return acc;
         }
-        else if ('light' in value &&
-            'dark' in value &&
-            'forcedColors' in value) {
-            acc.Theme[key] = {
-                Light: Config.potentiallyOverride(key, 'light') || value.light,
-                Dark: Config.potentiallyOverride(key, 'dark') || value.dark,
-                HCM: Config.potentiallyOverride(key, 'forcedColors') ||
-                    value.forcedColors,
-            };
-        }
-        else {
-            throw new Error(`When separating central tokens, the value type of token '${key}' is unknown: ${JSON.stringify(value)}`);
-        }
+        const newValue = {
+            Light: value.light,
+            Dark: value.dark,
+            HCM: value.forcedColors,
+        };
+        acc[key] = newValue;
         return acc;
-    }, { Primitives: {}, Theme: {} });
+    }, {});
+    const wrappedPrimitives = Object.fromEntries(Object.entries(rawCentralTokens.primitives).map(([key, value]) => [
+        key,
+        { Value: value },
+    ]));
+    const wrappedColors = Object.fromEntries(Object.entries(rawCentralTokens.colors).map(([key, value]) => [
+        key,
+        { Value: value },
+    ]));
+    return {
+        Colors: wrappedColors,
+        Primitives: wrappedPrimitives,
+        Theme: themeTokens,
+    };
 }
 function replaceTextColor(tokens) {
-    const colorMixTf = new ColorMix(tokens.Theme, Config.centralCurrentColorAlias);
-    for (const [key, value] of Object.entries(tokens.Theme)) {
-        for (const mode of ['Light', 'Dark', 'HCM']) {
-            const color = value[mode];
-            if (color === 'inherit') {
-                tokens.Theme[key][mode] = tryResolveInheritance(tokens, key, mode);
+    const colorMixTf = new ColorMix(tokens, Config.centralCurrentColorAlias);
+    const potentiallyFix = (value, mode, tokenName) => {
+        if (value === 'inherit') {
+            return tryResolveInheritance(tokens, tokenName, mode);
+        }
+        if (value === 'currentColor') {
+            return Config.centralCurrentColorAlias;
+        }
+        if ((mode === 'Light' || mode === 'Dark') && colorMixTf.isColorMix(value)) {
+            return colorMixTf.replaceColorMix(mode, value);
+        }
+        return value;
+    };
+    for (const [collectionName, collection] of Object.entries(tokens)) {
+        for (const [tokenName, token] of Object.entries(collection)) {
+            if ('Value' in token) {
+                const primitiveToken = token;
+                if (typeof primitiveToken.Value === 'string') {
+                    const newValue = potentiallyFix(primitiveToken.Value, undefined, tokenName);
+                    primitiveToken.Value = newValue;
+                }
             }
-            if (colorMixTf.isColorMix(color) && mode !== 'HCM') {
-                tokens.Theme[key][mode] = colorMixTf.replaceColorMix(mode, color);
+            else if ('Light' in token) {
+                const themeToken = token;
+                for (const mode of ['Light', 'Dark', 'HCM']) {
+                    const value = themeToken[mode];
+                    if (typeof value === 'string') {
+                        const newValue = potentiallyFix(value, mode, tokenName);
+                        themeToken[mode] = newValue;
+                    }
+                }
             }
         }
     }
     return tokens;
 }
-function replaceVariableReferences(tokens) {
-    const primitiveLookupMap = new Map();
-    for (const [key, value] of Object.entries(tokens.Primitives)) {
-        const parsedColor = customParse(value.Value);
-        if (parsedColor === undefined) {
-            continue;
+function filterRelativeUnits(tokens) {
+    const relativeTokens = {};
+    let newlyAdded = 0;
+    do {
+        newlyAdded = 0;
+        for (const [collectionName, collection] of Object.entries(tokens)) {
+            for (const [tokenName, token] of Object.entries(collection)) {
+                const isRelative = (value, tokenName) => {
+                    const extracted = extractAliasParts(value);
+                    if (extracted) {
+                        return relativeTokens[extracted.variable] !== undefined;
+                    }
+                    if (value.endsWith('rem') ||
+                        value.endsWith('em') ||
+                        value.endsWith('%')) {
+                        return true;
+                    }
+                    return false;
+                };
+                if ('Value' in token && typeof token.Value === 'string') {
+                    const isRel = isRelative(token.Value, tokenName);
+                    if (isRel) {
+                        newlyAdded++;
+                        delete tokens[collectionName][tokenName];
+                        relativeTokens[tokenName] = token;
+                    }
+                }
+                else if ('Light' in token) {
+                    const themeToken = token;
+                    let relModes = 0;
+                    for (const mode of ['Light', 'Dark', 'HCM']) {
+                        const value = themeToken[mode];
+                        if (typeof value === 'string') {
+                            const isRel = isRelative(value, tokenName);
+                            if (isRel) {
+                                throw new Error(`Central Import: When filtering relative units, the token ${tokenName} is a theme token and is relative. Which is not expected.`);
+                            }
+                        }
+                    }
+                }
+            }
         }
-        primitiveLookupMap.set(formatHex8(parsedColor), key);
-    }
-    for (const [key, value] of Object.entries(tokens.Theme)) {
-        for (const mode of ['Light', 'Dark', 'HCM']) {
-            const color = value[mode];
-            if (mode === 'HCM' && HCM_KEYS.includes(color)) {
-                tokens.Theme[key][mode] = `{HCM Theme$${color}}`;
-            }
-            else if (mode === 'HCM' && color === 'inherit') {
-                if (value.Light !== value.Dark) {
-                    throw new Error(`Ambiguous inherit: When replacing variable references, the color for '${key}' is 'inherit', but the light and dark colors are different: ${value.Light} and ${value.Dark}`);
-                }
-                tokens.Theme[key][mode] = value.Light;
-            }
-            else {
-                const parsedCurrentColor = customParse(color);
-                if (parsedCurrentColor === undefined) {
-                    continue;
-                }
-                const refVariable = primitiveLookupMap.get(formatHex8(parsedCurrentColor));
-                if (refVariable) {
-                    tokens.Theme[key][mode] = `{Primitives$${refVariable}}`;
-                }
-            }
-        }
-    }
-    return tokens;
+    } while (newlyAdded > 0);
+    return {
+        central: tokens,
+        relative: relativeTokens,
+    };
 }
 const COLOR_MIX_REGEX = /color-mix\(in srgb, currentColor (\d+)%?, transparent\)/;
 class ColorMix {
+    token;
     light;
     dark;
-    constructor(collection, key) {
-        const colors = collection[key];
-        const light = customParse(colors.Light);
-        const dark = customParse(colors.Dark);
+    constructor(collections, key) {
+        const lightPrimitive = centralFullResolve(key, 'Light', collections);
+        const darkPrimitive = centralFullResolve(key, 'Dark', collections);
+        const light = customParse(lightPrimitive);
+        const dark = customParse(darkPrimitive);
         if (light === undefined) {
-            throw new Error(`When initializing ColorMix, the light color is invalid: ${colors.Light}`);
+            throw new Error(`When initializing ColorMix, the light color is invalid: ${lightPrimitive}`);
         }
         if (dark === undefined) {
-            throw new Error(`When initializing ColorMix, the dark color is invalid: ${colors.Dark}`);
+            throw new Error(`When initializing ColorMix, the dark color is invalid: ${darkPrimitive}`);
         }
+        this.token = key;
         this.light = light;
         this.dark = dark;
     }
@@ -137,18 +179,63 @@ class ColorMix {
 }
 function tryResolveInheritance(tokens, tokenName, mode) {
     const parts = tokenName.split('/');
-    const lastPart = parts[parts.length - 1];
-    for (let i = parts.length - 2; i >= 0; i--) {
-        const key = [...parts.slice(0, i), lastPart].join('/');
-        if (tokens.Theme[key] && tokens.Theme[key][mode] !== 'inherit') {
-            return tokens.Theme[key][mode];
+    const PASSES = 2;
+    const getKeyFn = (pass) => (i, parts, lastPart) => {
+        switch (pass) {
+            case 1:
+                return [...parts.slice(0, i), lastPart].join('/');
+            case 2:
+                return parts.slice(0, i).join('/');
+            default:
+                throw new Error('Invalid pass number');
         }
-    }
-    for (let i = parts.length - 1; i > 0; i--) {
-        const key = parts.slice(0, i).join('/');
-        if (tokens.Theme[key] && tokens.Theme[key][mode] !== 'inherit') {
-            return tokens.Theme[key][mode];
+    };
+    for (let pass = 1; pass <= PASSES; pass++) {
+        const getKey = getKeyFn(pass);
+        const lastPart = parts[parts.length - 1];
+        for (let i = parts.length - 1; i >= 0; i--) {
+            const key = getKey(i, parts, lastPart);
+            const current = tokens.Theme[key];
+            if (current) {
+                if (!('Value' in current)) {
+                    if (!mode) {
+                        throw new Error(`Central Import: When trying to resolve inheritance for primitive ${tokenName}, a non-primitive value was found.`);
+                    }
+                    if (current[mode] !== undefined && current[mode] !== 'inherit') {
+                        return current[mode];
+                    }
+                }
+                else if (current.Value !== 'inherit') {
+                    return current.Value;
+                }
+            }
         }
     }
     throw new Error(`Central Import: When trying to find a replacement for 'inherit' in ${tokenName}, no value was found`);
+}
+function centralFullResolve(key, mode, collections) {
+    let value = key;
+    while (true) {
+        const extracted = extractAliasParts(value);
+        if (!extracted) {
+            return value;
+        }
+        const collection = collections[extracted.collection];
+        if (!collection) {
+            throw new Error(`Central Import: When resolving '${key}', the collection '${extracted.collection}' does not exist`);
+        }
+        const variable = collection[extracted.variable];
+        if (!variable) {
+            throw new Error(`Central Import: When resolving '${key}', the variable '${extracted.variable}' does not exist in collection '${extracted.collection}'`);
+        }
+        if (!('Value' in variable)) {
+            if (!variable[mode]) {
+                throw new Error(`Central Import: When resolving '${key}', the mode '${mode}' does not exist in variable '${extracted.variable}'`);
+            }
+            value = variable[mode];
+        }
+        else {
+            value = variable.Value;
+        }
+    }
 }

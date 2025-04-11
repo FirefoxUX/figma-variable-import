@@ -150,7 +150,6 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
             primitiveToken.Value,
             undefined,
             tokenName,
-
           )
           primitiveToken.Value = newValue
         }
@@ -164,7 +163,6 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
             const newValue = potentiallyFix(value, mode, tokenName)
             themeToken[mode] = newValue
           }
-
         }
       }
     }

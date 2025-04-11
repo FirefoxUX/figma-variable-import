@@ -1,11 +1,20 @@
-import { parse, formatHex8, formatHex, type Color, type Rgb } from 'culori'
+import {
+  parse,
+  formatHex8,
+  formatHex,
+  type Color,
+  type Rgb,
+  converter,
+} from 'culori'
 
 // Currently there is no standardized way to convert from oklch to srgb across
 // browsers. To come up with the same result as Firefox, we are using the same
 // implementation (ported over from Rust).
 // https://searchfox.org/mozilla-central/rev/601256c3cc6f397b018995810fd3f586570f50ee/servo/components/style/color/mod.rs#573,591
 
-export { formatHex8, formatHex, type Color, type Rgb }
+const rgb = converter('rgb')
+
+export { formatHex8, formatHex, type Color, type Rgb, rgb }
 export const customParse: typeof parse = (...args) => {
   const result = parse(...args)
   if (result?.mode === 'oklch') {

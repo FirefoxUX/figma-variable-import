@@ -1,5 +1,4 @@
 import { RGBA, VariableAlias } from '@figma/rest-api-spec'
-import { Color, converter, parse } from 'culori'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
   isFigmaAlias,
@@ -10,10 +9,7 @@ import {
   compareColors,
 } from '../utils.js'
 import { FigmaVariableData, TypedCentralVariable } from '../types.js'
-import { customParse } from '../color.js'
-
-const rgb = converter('rgb')
-
+import { customParse, rgb } from '../color.js'
 /**
  * Updates the variable values if central values don't match the Figma values.
  *
@@ -141,7 +137,7 @@ function checkIfUpdateRequired(
       ) {
         requiresUpdate = true
       } else {
-        const centralParsed = parse(centralValue as string)!
+        const centralParsed = customParse(centralValue as string)!
         const figmaParsed = figmaToCulori(figmaVariableData.value as RGBA)
         if (
           figmaParsed === undefined ||
