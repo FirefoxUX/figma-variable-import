@@ -1,5 +1,5 @@
+import { customParse, Color, formatHex8 } from './color.js'
 import Config from './Config.js'
-import { Color, formatHex8, parse } from 'culori'
 import { extractAliasParts } from './utils.js'
 
 type RawPrimitiveValue = string | number | boolean
@@ -150,6 +150,7 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
             primitiveToken.Value,
             undefined,
             tokenName,
+
           )
           primitiveToken.Value = newValue
         }
@@ -163,6 +164,7 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
             const newValue = potentiallyFix(value, mode, tokenName)
             themeToken[mode] = newValue
           }
+
         }
       }
     }
@@ -267,8 +269,8 @@ class ColorMix {
     const lightPrimitive = centralFullResolve(key, 'Light', collections)
     const darkPrimitive = centralFullResolve(key, 'Dark', collections)
 
-    const light = parse(lightPrimitive)
-    const dark = parse(darkPrimitive)
+    const light = customParse(lightPrimitive)
+    const dark = customParse(darkPrimitive)
 
     if (light === undefined) {
       throw new Error(

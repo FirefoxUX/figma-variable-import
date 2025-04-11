@@ -1,5 +1,5 @@
 import Config from './Config.js';
-import { formatHex8, parse } from 'culori';
+import { customParse, formatHex8 } from './color.js';
 const FIGMA_API_ENDPOINT = 'https://api.figma.com';
 export const FigmaAPIURLs = {
     getVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
@@ -74,7 +74,7 @@ export function determineResolvedType(value) {
     if (!isNaN(Number(value))) {
         return 'FLOAT';
     }
-    if (parse(value) !== undefined) {
+    if (customParse(value) !== undefined) {
         return 'COLOR';
     }
     if (typeof value === 'string') {

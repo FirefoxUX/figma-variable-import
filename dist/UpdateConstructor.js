@@ -1,4 +1,5 @@
 import { FigmaAPIURLs, SYMBOL_RESOLVED_TYPE, determineResolvedTypeWithAlias, extractAliasParts, fetchFigmaAPI, } from './utils.js';
+import { inspect } from 'util';
 class UpdateConstructor {
     idCounter;
     changes;
@@ -41,7 +42,7 @@ class UpdateConstructor {
             console.info('No changes to submit');
             return;
         }
-        console.info('Submitting changes:', changes);
+        console.info('Submitting changes:', inspect(changes, { depth: null, colors: true }));
         try {
             const result = await fetchFigmaAPI(FigmaAPIURLs.postVariables(fileId), {
                 method: 'POST',

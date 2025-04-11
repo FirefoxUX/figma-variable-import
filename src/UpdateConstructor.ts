@@ -44,6 +44,8 @@ export type ExtraStats = {
   result?: PostVariablesResponse | ErrorResponsePayloadWithErrorBoolean | string
 }
 
+import { inspect } from 'util'
+
 /**
  * This class is used to keep track of changes that need to be submitted to the Figma API.
  */
@@ -103,7 +105,10 @@ class UpdateConstructor {
       return
     }
 
-    console.info('Submitting changes:', changes)
+    console.info(
+      'Submitting changes:',
+      inspect(changes, { depth: null, colors: true }),
+    )
 
     try {
       const result = await fetchFigmaAPI<PostVariablesResponse>(
