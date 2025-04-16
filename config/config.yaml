@@ -26,7 +26,7 @@ figmaOnlyVariables:
   - 'background/color/toolbar'
   - 'background/color/canvas-v2'
   - 'background/color/backdrop'
-  - 'button/background/color/primary/deemphasized'
+  - 'color/accent/primary/deemphasized'
 
 ######################
 # Debugging settings #
