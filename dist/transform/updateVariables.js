@@ -1,6 +1,5 @@
-import { converter, parse } from 'culori';
 import { isFigmaAlias, culoriToFigma, figmaToCulori, SYMBOL_RESOLVED_TYPE, isCentralAlias, compareColors, } from '../utils.js';
-const rgb = converter('rgb');
+import { customParse, rgb } from '../color.js';
 export function updateVariables(uc) {
     for (const collectionName in uc.centralTokens) {
         for (const [variableName, centralValues] of Object.entries(uc.centralTokens[collectionName])) {
@@ -18,7 +17,7 @@ export function updateVariables(uc) {
                     continue;
                 }
                 if (centralValues[SYMBOL_RESOLVED_TYPE] === 'COLOR') {
-                    const parsedColor = parse(centralValue);
+                    const parsedColor = customParse(centralValue);
                     if (parsedColor === undefined) {
                         throw new Error(`When updating variables: Invalid central color value: ${centralValue} for token ${variableName} in collection ${collectionName}`);
                     }
@@ -62,7 +61,7 @@ function checkIfUpdateRequired(figmaVariableData, centralValue, uc, centralValue
                 requiresUpdate = true;
             }
             else {
-                const centralParsed = parse(centralValue);
+                const centralParsed = customParse(centralValue);
                 const figmaParsed = figmaToCulori(figmaVariableData.value);
                 if (figmaParsed === undefined ||
                     !compareColors(centralParsed, figmaParsed)) {

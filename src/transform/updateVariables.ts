@@ -1,5 +1,5 @@
-import { LocalVariable, RGBA, VariableAlias } from '@figma/rest-api-spec'
-import { converter, parse } from 'culori'
+
+import { RGBA, VariableAlias } from '@figma/rest-api-spec'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
   isFigmaAlias,
@@ -8,8 +8,8 @@ import {
   SYMBOL_RESOLVED_TYPE,
   isCentralAlias,
   compareColors,
-  extractAliasParts,
 } from '../utils.js'
+
 import {
   FigmaResultCollection,
   FigmaVariableData,
@@ -17,7 +17,7 @@ import {
   TypedCentralVariable,
 } from '../types.js'
 
-const rgb = converter('rgb')
+import { customParse, rgb } from '../color.js'
 
 /**
  * Updates the variable values if central values don't match the Figma values.
@@ -75,7 +75,7 @@ export function updateVariables(
         if (centralValues[SYMBOL_RESOLVED_TYPE] === 'COLOR') {
           // for a color we need to convert to a culori and then to RGBA
           // convert the central value to a culori object
-          const parsedColor = parse(centralValue as string)
+          const parsedColor = customParse(centralValue as string)
           // the central value one has to be valid, since its our source of truth
           if (parsedColor === undefined) {
             throw new Error(
@@ -149,7 +149,7 @@ function checkIfUpdateRequired(
       ) {
         requiresUpdate = true
       } else {
-        const centralParsed = parse(centralValue as string)!
+        const centralParsed = customParse(centralValue as string)!
         const figmaParsed = figmaToCulori(figmaVariableData.value as RGBA)
         if (
           figmaParsed === undefined ||

@@ -2,9 +2,9 @@ import { VariableCreate } from '@figma/rest-api-spec'
 import { FigmaCollections, FigmaVariableValue } from '../types.js'
 import { ExtraStats } from '../UpdateConstructor.js'
 import { figmaToCulori, isFigmaAlias, roundTo } from '../utils.js'
-import { formatHex } from 'culori'
 import { summary } from './summary.js'
 import Config from '../Config.js'
+import { formatHex } from '../color.js'
 
 type SlackWorkflowStats = Record<keyof Omit<ExtraStats, 'result'>, number> & {
   actionURL: string

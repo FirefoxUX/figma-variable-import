@@ -1,4 +1,5 @@
 import { FigmaAPIURLs, SYMBOL_RESOLVED_TYPE, determineResolvedTypeWithAlias, extractAliasParts, fetchFigmaAPI, } from './utils.js';
+import { inspect } from 'util';
 class UpdateConstructor {
     idCounter;
     changes;
@@ -41,7 +42,7 @@ class UpdateConstructor {
             console.info('No changes to submit');
             return;
         }
-        console.info('Submitting changes:', changes);
+        console.info('Submitting changes:', inspect(changes, { depth: null, colors: true }));
         try {
             const result = await fetchFigmaAPI(FigmaAPIURLs.postVariables(fileId), {
                 method: 'POST',
@@ -211,21 +212,16 @@ class UpdateConstructor {
 export default UpdateConstructor;
 function inferResolvedTypes(centralTokens) {
     const typedCentralTokens = {};
-    const queue = [];
-    const resolveVariableTypes = (collectionName, variableName, addToQueue) => {
+    let queue = [];
+    const resolveVariableTypes = (collectionName, variableName) => {
         const variable = centralTokens[collectionName][variableName];
         let lastResolvedType = undefined;
         for (const mode in variable) {
             const value = variable[mode];
             const resolvedType = determineResolvedTypeWithAlias(typedCentralTokens, value);
             if (resolvedType === null) {
-                if (addToQueue) {
-                    queue.push({ collectionName, variableName });
-                    return;
-                }
-                else {
-                    throw new Error(`When trying to infer variable types: Variable '${variableName}' in collection '${collectionName}' could not be resolved (variable value: ${value})`);
-                }
+                queue.push({ collectionName, variableName });
+                return;
             }
             if (lastResolvedType && lastResolvedType !== resolvedType) {
                 throw new Error(`When trying to infer variable types: Variable '${variableName}' in collection '${collectionName}' has conflicting types in different modes (${lastResolvedType} and ${resolvedType})`);
@@ -247,11 +243,21 @@ function inferResolvedTypes(centralTokens) {
     for (const collectionName in centralTokens) {
         const collection = centralTokens[collectionName];
         for (const variableName in collection) {
-            resolveVariableTypes(collectionName, variableName, true);
+            resolveVariableTypes(collectionName, variableName);
         }
     }
-    for (const { collectionName, variableName } of queue) {
-        resolveVariableTypes(collectionName, variableName, false);
+    const LOOP_LIMIT = 10;
+    let loopCounter = LOOP_LIMIT;
+    while (queue.length > 0 && loopCounter > 0) {
+        const queueCopy = [...queue];
+        queue = [];
+        for (const { collectionName, variableName } of queueCopy) {
+            resolveVariableTypes(collectionName, variableName);
+        }
+        loopCounter--;
+    }
+    if (loopCounter === 0) {
+        throw new Error(`When trying to infer variable types: There are still variables that could not be resolved after ${LOOP_LIMIT} iterations.`);
     }
     if (queue.length > 0) {
         console.warn(`WARNING: ${queue.length} variables had to be resolved in a second pass.

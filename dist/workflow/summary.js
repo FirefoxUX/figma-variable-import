@@ -39,7 +39,7 @@ class Summary {
         const overwrite = !!options?.overwrite;
         const filePath = await this.filePath();
         if (!filePath) {
-            console.log(`~~~ SUMMARY ~~~${EOL}${this._buffer}${EOL}~~~ END SUMMARY ~~~`);
+            console.info(`~~~ SUMMARY ~~~${EOL}${this._buffer}${EOL}~~~ END SUMMARY ~~~`);
             return this.emptyBuffer();
         }
         const writeFunc = overwrite ? writeFile : appendFile;
@@ -145,7 +145,8 @@ class Summary {
     addAlert(type, text) {
         const element = text
             .split(EOL)
-            .map((line) => `> ${line}`)
+            .map((line) => `> ${line.trim()}`)
+            .filter((line) => line !== '>')
             .join(EOL);
         const alert = `> [!${type.toUpperCase()}]${EOL}${element}`;
         return this.addRaw(alert).addEOL();

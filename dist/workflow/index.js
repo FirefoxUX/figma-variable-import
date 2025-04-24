@@ -1,7 +1,7 @@
 import { figmaToCulori, isFigmaAlias, roundTo } from '../utils.js';
-import { formatHex } from 'culori';
 import { summary } from './summary.js';
 import Config from '../Config.js';
+import { formatHex } from '../color.js';
 export async function documentStats(stats, figCollections) {
     setGithubWorkflowSummary(stats, figCollections);
     await sendSlackWorkflowStats(stats);

@@ -96,7 +96,7 @@ function processSurfaceReferences(
       )
       const newEntry = Object.keys(rootEntries.chrome).reduce(
         (acc: Record<string, string>, key) => {
-          acc[key] = `{Operating System%${newReferenceKey}}`
+          acc[key] = `{Operating System$${newReferenceKey}}`
           return acc
         },
         {} as Record<string, string>,
@@ -145,7 +145,7 @@ function processRelativeValues(
           if (key === 'id') {
             return acc
           }
-          acc[key] = value * relativeValue
+          acc[key] = Math.round(value * relativeValue)
           return acc
         },
         {} as Record<string, number>,

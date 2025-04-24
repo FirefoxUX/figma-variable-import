@@ -14,8 +14,5 @@
     "removeComments": true,
     "resolveJsonModule": true,
     "baseUrl": "./src",
-    "paths": {
-      "@src/*": ["*"]
-    }
   }
 }

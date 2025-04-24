@@ -148,7 +148,7 @@ class Summary {
 
     // if there is no file path, print to console
     if (!filePath) {
-      console.log(
+      console.info(
         `~~~ SUMMARY ~~~${EOL}${this._buffer}${EOL}~~~ END SUMMARY ~~~`,
       )
       return this.emptyBuffer()
@@ -397,7 +397,8 @@ class Summary {
   ): Summary {
     const element = text
       .split(EOL)
-      .map((line) => `> ${line}`)
+      .map((line) => `> ${line.trim()}`)
+      .filter((line) => line !== '>')
       .join(EOL)
     const alert = `> [!${type.toUpperCase()}]${EOL}${element}`
     return this.addRaw(alert).addEOL()

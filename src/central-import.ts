@@ -1,5 +1,5 @@
+import { customParse, Color, formatHex8 } from './color.js'
 import Config from './Config.js'
-import { Color, formatHex8, parse } from 'culori'
 import { extractAliasParts } from './utils.js'
 
 type RawPrimitiveValue = string | number | boolean
@@ -34,28 +34,6 @@ type CentralAndRelativeTokens = {
   central: CentralTokens
   relative: Record<string, PrimitiveTokens>
 }
-
-const HCM_KEYS = [
-  'ActiveText',
-  'ButtonBorder',
-  'ButtonFace',
-  'ButtonText',
-  'Canvas',
-  'CanvasText',
-  'Field',
-  'FieldText',
-  'GrayText',
-  'Highlight',
-  'HighlightText',
-  'LinkText',
-  'Mark',
-  'MarkText',
-  'SelectedItem',
-  'SelectedItemText',
-  'AccentColor',
-  'AccentColorText',
-  'VisitedText',
-]
 
 export async function getCentralCollectionValues(): Promise<CentralAndRelativeTokens> {
   const result = await downloadFromCentral()
@@ -150,6 +128,9 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
   ) => {
     if (value === 'inherit') {
       return tryResolveInheritance(tokens, tokenName, mode)
+    }
+    if (value === 'currentColor') {
+      return Config.centralCurrentColorAlias
     }
     if ((mode === 'Light' || mode === 'Dark') && colorMixTf.isColorMix(value)) {
       return colorMixTf.replaceColorMix(mode, value)
@@ -286,8 +267,8 @@ class ColorMix {
     const lightPrimitive = centralFullResolve(key, 'Light', collections)
     const darkPrimitive = centralFullResolve(key, 'Dark', collections)
 
-    const light = parse(lightPrimitive)
-    const dark = parse(darkPrimitive)
+    const light = customParse(lightPrimitive)
+    const dark = customParse(darkPrimitive)
 
     if (light === undefined) {
       throw new Error(

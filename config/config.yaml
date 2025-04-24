@@ -9,9 +9,9 @@
 centralCurrentColorAlias: '{Theme$text/color}'
 # URL for the central source of the design tokens
 centralSource:
-  colors: 'TBD'
-  primitives: 'TBD'
-  theme: 'TBD'
+  colors: 'https://hg-edge.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma-colors.json'
+  primitives: 'https://hg-edge.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma-primitives.json'
+  theme: 'https://hg-edge.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma-theme.json'
 
 ######################
 # Deprecation config #
@@ -24,9 +24,10 @@ figmaOnlyVariables:
   - 'border/color/default'
   - 'background/color/tabstrip'
   - 'background/color/toolbar'
+  - 'background/color/tab'
   - 'background/color/canvas-v2'
   - 'background/color/backdrop'
-  - 'button/background/color/primary/deemphasized'
+  - 'color/accent/primary/deemphasized'
 
 ######################
 # Debugging settings #
