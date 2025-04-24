@@ -6,312 +6,374 @@ import { summary } from './summary.js'
 import Config from '../Config.js'
 import { formatHex } from '../color.js'
 
-type SlackWorkflowStats = Record<keyof Omit<ExtraStats, 'result'>, number> & {
-  actionURL: string
+type InfoBoxMessage = {
+  type: 'note' | 'tip' | 'important' | 'warning' | 'caution'
+  message: string
+  code?: string
 }
-type SlackErrorPayload = {
-  errorMessage: string
+
+type SlackPayload = {
+  heading: string
+  message: string
   actionURL: string
 }
 
-type SummaryData = {
-  fileName: string
+type JobData = {
+  jobId: string
+  jobName: string
+}
+
+type SummaryData = JobData & {
   stats: ExtraStats
   figCollections: FigmaCollections
 }
 
-export async function documentStats(data: SummaryData[]) {
-  setGithubWorkflowSummary(data)
-  await sendSlackWorkflowStats(data)
+type ErrorData = JobData & {
+  error: string | Error
 }
 
-export async function documentError(error: Error | string) {
-  setGithubWorkflowError(error)
-  await sendSlackWorkflowError(error)
-}
+type WorkflowData = SummaryData | ErrorData
 
-export async function sendSlackWorkflowStats(
-  data: SummaryData[],
-): Promise<void> {
-  if (!Config.slackWebhookUrlSuccess) return
+class WorkflowLogger {
+  private data: WorkflowData[] = []
 
-  const numberStats: Record<keyof Omit<ExtraStats, 'result'>, number> = {
-    modesCreated: data.reduce(
-      (sum, item) => sum + item.stats.modesCreated.length,
-      0,
-    ),
-    variablesCreated: data.reduce(
-      (sum, item) => sum + item.stats.variablesCreated.length,
-      0,
-    ),
-    variableValuesUpdated: data.reduce(
-      (sum, item) => sum + item.stats.variableValuesUpdated.length,
-      0,
-    ),
-    variablesDeprecated: data.reduce(
-      (sum, item) => sum + item.stats.variablesDeprecated.length,
-      0,
-    ),
-    variablesUndeprecated: data.reduce(
-      (sum, item) => sum + item.stats.variablesUndeprecated.length,
-      0,
-    ),
+  constructor() {
+    this.setupHeader()
   }
 
-  const total = Object.values(numberStats).reduce((acc, curr) => acc + curr, 0)
-  if (total === 0) return
-
-  const payload: SlackWorkflowStats = {
-    ...numberStats,
-    actionURL: getGithubActionURL(),
-  }
-
-  return sendSlackWebhook(Config.slackWebhookUrlSuccess, payload)
-}
-
-export function setGithubWorkflowSummary(data: SummaryData[]) {
-  summary.addHeading('Central > Figma Variable Import Summary', 2)
-
-  for (const [index, { fileName, stats, figCollections }] of data.entries()) {
-    summary.addHeading(fileName, 3)
-
-    if (Config.dryRun) {
-      summary.addEOL().addRaw('> [!NOTE]').addEOL()
-      summary
-        .addRaw(
-          '> This was a dry run. The changes were not submitted to Figma.',
-        )
-        .addEOL()
-    } else if (stats.result === undefined) {
-      summary.addEOL().addRaw('> [!WARNING]').addEOL()
-      summary
-        .addRaw(
-          '> Changes were supposed to be submitted to Figma, but no result was recorded, which indicates a possible error.',
-        )
-        .addEOL()
-    } else if (typeof stats.result === 'object' && 'error' in stats.result) {
-      if (stats.result.error === true) {
-        summary.addEOL().addRaw('> [!CAUTION]').addEOL()
-        summary
-          .addRaw(
-            `> An error occurred while submitting changes to Figma. (Status code: ${stats.result.status})`,
-          )
-          .addEOL()
-        if (stats.result.message) {
-          summary.addEOL().addRaw(`>`).addEOL()
-          summary.addEOL().addRaw(`> \`\`\``).addEOL()
-          stats.result.message.split('\n').forEach((line) => {
-            summary.addEOL().addRaw(`> ${line}`).addEOL()
-          })
-          summary.addEOL().addRaw(`> \`\`\``).addEOL()
-        }
-      } else {
-        summary.addEOL().addRaw('> [!NOTE]').addEOL()
-        summary
-          .addRaw('> Changes were submitted to Figma without any errors.')
-          .addEOL()
-      }
-    } else {
-      summary.addEOL().addRaw('> [!CAUTION]').addEOL()
-      summary.addRaw(
-        '> An unexpected error occurred while submitting changes to Figma.',
-      )
-      // if stats.result is a string, add it to the summary
-      if (typeof stats.result === 'string') {
-        summary.addRaw(`>`).addEOL()
-        summary.addRaw(`> \`\`\``).addEOL()
-        stats.result.split('\n').forEach((line) => {
-          summary.addRaw(`> ${line}`).addEOL()
-        })
-        summary.addRaw(`> \`\`\``).addEOL()
-      }
+  private writeInfoBoxMessage(info: InfoBoxMessage) {
+    summary.addEOL().addRaw(`> [!${info.type.toUpperCase()}]`).addEOL()
+    summary.addRaw(`> ${info.message}`).addEOL()
+    if (info.code) {
+      summary.addEOL().addRaw(`>`).addEOL()
+      summary.addEOL().addRaw(`> \`\`\``).addEOL()
+      info.code.split('\n').forEach((line) => {
+        summary.addEOL().addRaw(`> ${line}`).addEOL()
+      })
+      summary.addEOL().addRaw(`> \`\`\``).addEOL()
     }
     summary.addEOL()
+  }
 
-    // Modes created
-    summary.addEOL().addHeading('Modes created', 4)
-    if (stats.modesCreated.length === 0) {
-      const element = summary.wrap('p', 'No modes were created.')
-      summary.addEOL().addRaw(element).addEOL()
-    } else {
-      const element = summary.wrap(
-        'p',
-        `The following ${stats.modesCreated.length} modes were created:`,
-      )
-      summary.addEOL().addRaw(element).addEOL()
-      // create a table with the collection and mode name
-      summary.addTable([
-        [
-          { data: 'Collection', header: true },
-          { data: 'Mode created', header: true },
-        ],
-        ...stats.modesCreated.map((mode) => [mode.collection, mode.mode]),
-      ])
+  private setupHeader() {
+    summary.addHeading('Figma Variable Script Summary', 2)
+
+    if (Config.dryRun) {
+      this.writeInfoBoxMessage({
+        type: 'note',
+        message:
+          'This was a dry run. No changes were made to Figma.\nBelow is a summary of the changes that would be made.',
+      })
+    }
+  }
+
+  documentJob(data: WorkflowData) {
+    this.data.push(data)
+  }
+
+  async finalize() {
+    summary.addEOL().addHeading('Jobs', 3)
+    summary.addList(
+      this.data.map(({ jobId, jobName }) =>
+        summary.wrap('a', summary.wrap('strong', jobName), {
+          href: `#user-content-job-${jobId}`,
+        }),
+      ),
+      true,
+    )
+    summary.addEOL().addSeparator().addEOL()
+    for (let i = 0; i < this.data.length; i++) {
+      const entry = this.data[i]
+      let infoMessage = this.getJobInfo(entry)
+      this.createJobSummary(entry, infoMessage)
+      this.createJobSlackMessage(entry, infoMessage)
+      if (i < this.data.length - 1) {
+        summary.addEOL().addSeparator().addEOL()
+      }
     }
 
-    // Variables created
-    summary.addEOL().addHeading('Variables created', 4)
-    if (stats.variablesCreated.length === 0) {
-      const element = summary.wrap('p', 'No variables were created.')
-      summary.addEOL().addRaw(element).addEOL()
-    } else {
-      const element = summary.wrap(
-        'p',
-        `The following ${stats.variablesCreated.length} variables were created:`,
-      )
-      summary.addEOL().addRaw(element).addEOL()
-      // create a table with the collection, variable name and resolved type
-      summary.addTable([
-        [
-          { data: 'Collection', header: true },
-          { data: 'Variable', header: true },
-          { data: 'Type', header: true },
-        ],
-        ...stats.variablesCreated.map((variable) => [
-          variable.collection,
-          summary.wrap('strong', variable.variable),
-          variable.resolvedType,
-        ]),
-      ])
+    summary.write()
+  }
+
+  private createJobSummary(data: WorkflowData, infoMessage?: InfoBoxMessage) {
+    const { jobId, jobName } = data
+    summary
+      .addRaw(summary.wrap('h3', jobName, { id: `job-${jobId}` }))
+      .addEOL()
+      .addEOL()
+
+    if (infoMessage) {
+      this.writeInfoBoxMessage(infoMessage)
+      summary.addEOL()
     }
 
-    // Variable values updated
-    summary.addEOL().addHeading('Variable values updated', 4)
-    if (stats.variableValuesUpdated.length === 0) {
-      const element = summary.wrap('p', 'No variable values were updated.')
-      summary.addEOL().addRaw(element).addEOL()
-    } else {
-      const element = summary.wrap(
-        'p',
-        `The following ${stats.variableValuesUpdated.length} variable values were updated:`,
-      )
-      summary.addEOL().addRaw(element).addEOL()
-      // create a table with the collection, variable name, mode, old value and new value
-      summary.addTable([
-        [
-          { data: 'Collection', header: true },
-          { data: 'Variable', header: true },
-          { data: 'Mode', header: true },
-          { data: 'Old value', header: true },
-          { data: 'New value', header: true },
-        ],
-        ...stats.variableValuesUpdated.map((variable) => [
-          variable.collection,
-          summary.wrap('strong', variable.variable),
-          variable.mode,
-          variable.oldValue !== undefined
-            ? summary.wrap(
-                'code',
-                formatFigmaVariableValue(
-                  variable.oldValue,
-                  variable.resolvedType,
-                  figCollections,
-                ),
-              )
-            : '',
-          summary.wrap(
-            'code',
-            formatFigmaVariableValue(
-              variable.newValue,
-              variable.resolvedType,
-              figCollections,
+    if ('stats' in data) {
+      const { stats, figCollections } = data
+      // Modes created
+      if (stats.modesCreated.length > 0) {
+        summary.addHeading('Modes created', 2)
+        // create a table with the collection and mode name
+        summary.addTable([
+          [
+            { data: 'Collection', header: true },
+            { data: 'Mode created', header: true },
+          ],
+          ...stats.modesCreated.map((mode) => [mode.collection, mode.mode]),
+        ])
+      }
+
+      // Variables created
+      if (stats.variablesCreated.length > 0) {
+        summary.addHeading('Variables created', 2)
+        // create a table with the collection, variable name and resolved type
+        summary.addTable([
+          [
+            { data: 'Collection', header: true },
+            { data: 'Variable', header: true },
+            { data: 'Type', header: true },
+          ],
+          ...stats.variablesCreated.map((variable) => [
+            variable.collection,
+            summary.wrap('strong', variable.variable),
+            variable.resolvedType,
+          ]),
+        ])
+      }
+
+      // Variable values updated
+      if (stats.variableValuesUpdated.length > 0) {
+        summary.addHeading('Variable values updated', 2)
+        // create a table with the collection, variable name, mode, old value and new value
+        summary.addTable([
+          [
+            { data: 'Collection', header: true },
+            { data: 'Variable', header: true },
+            { data: 'Mode', header: true },
+            { data: 'Old value', header: true },
+            { data: 'New value', header: true },
+          ],
+          ...stats.variableValuesUpdated.map((variable) => [
+            variable.collection,
+            summary.wrap('strong', variable.variable),
+            variable.mode,
+            variable.oldValue !== undefined
+              ? summary.wrap(
+                  'code',
+                  formatFigmaVariableValue(
+                    variable.oldValue,
+                    variable.resolvedType,
+                    figCollections,
+                  ),
+                )
+              : '',
+            summary.wrap(
+              'code',
+              formatFigmaVariableValue(
+                variable.newValue,
+                variable.resolvedType,
+                figCollections,
+              ),
             ),
-          ),
-        ]),
-      ])
+          ]),
+        ])
+      }
+
+      // Variables deprecated
+      if (stats.variablesDeprecated.length > 0) {
+        summary.addHeading('Variables deprecated', 2)
+        const element1 = summary.wrap(
+          'p',
+          'Variables where a deprecation warning was added to the description.',
+        )
+        summary.addEOL().addRaw(element1).addEOL()
+        // create a table with the collection and variable name
+        summary.addTable([
+          [
+            { data: 'Collection', header: true },
+            { data: 'Variable', header: true },
+          ],
+          ...stats.variablesDeprecated.map((variable) => [
+            variable.collection,
+            variable.variable,
+          ]),
+        ])
+      }
+
+      // Variables undeprecated
+      if (stats.variablesUndeprecated.length > 0) {
+        summary.addHeading('Variables undeprecated', 2)
+        const element2 = summary.wrap(
+          'p',
+          'Variables where a deprecation warning was removed from the description.',
+        )
+        summary.addEOL().addRaw(element2).addEOL
+        // create a table with the collection and variable name
+        summary.addTable([
+          [
+            { data: 'Collection', header: true },
+            { data: 'Variable', header: true },
+          ],
+          ...stats.variablesUndeprecated.map((variable) => [
+            variable.collection,
+            variable.variable,
+          ]),
+        ])
+      }
+    }
+    summary.write()
+  }
+
+  private getJobInfo(data: WorkflowData): InfoBoxMessage | undefined {
+    let infoMessage: InfoBoxMessage | undefined
+    if ('error' in data) {
+      const error = data.error as string | Error
+      const errorMessage =
+        typeof error === 'string'
+          ? error
+          : error.stack || error.message || 'An unknown error occurred.'
+
+      infoMessage = {
+        type: 'caution',
+        message: 'An error occurred while running the script.',
+        code: errorMessage,
+      }
+    } else if ('stats' in data && data.stats.emptyChangeset === true) {
+      infoMessage = {
+        type: 'note',
+        message: 'No changes were found for this job.',
+      }
+    } else if (!Config.dryRun && 'stats' in data) {
+      const { stats } = data
+      if (stats.result === undefined) {
+        infoMessage = {
+          type: 'warning',
+          message:
+            'Changes were supposed to be submitted to Figma, but no result was recorded, which indicates a possible error.',
+        }
+      } else if (typeof stats.result === 'object' && 'error' in stats.result) {
+        if (stats.result.error === true) {
+          infoMessage = {
+            type: 'caution',
+            message: `An error occurred while submitting changes to Figma. (Status code: ${stats.result.status})`,
+            code: stats.result.message,
+          }
+        } else {
+          infoMessage = {
+            type: 'note',
+            message: 'Changes were submitted to Figma without any errors. Yay!',
+          }
+        }
+      } else {
+        infoMessage = {
+          type: 'caution',
+          message:
+            'An unexpected error occurred while submitting changes to Figma.',
+          code: typeof stats.result === 'string' ? stats.result : undefined,
+        }
+      }
+    }
+    return infoMessage
+  }
+
+  private async createJobSlackMessage(
+    data: WorkflowData,
+    infoMessage?: InfoBoxMessage,
+  ) {
+    const webookUrl =
+      'stats' in data
+        ? Config.slackWebhookUrlSuccess
+        : Config.slackWebhookUrlFailure
+    if (!webookUrl) {
+      return
     }
 
-    // Variables deprecated
-    summary.addEOL().addHeading('Variables deprecated', 4)
-    const element1 = summary.wrap(
-      'p',
-      'Variables where a deprecation warning was added to the description.',
-    )
-    summary.addEOL().addRaw(element1).addEOL()
-    if (stats.variablesDeprecated.length === 0) {
-      const element = summary.wrap('p', 'No variables were deprecated.')
-      summary.addEOL().addRaw(element).addEOL()
-    } else {
-      const element = summary.wrap(
-        'p',
-        `The following ${stats.variablesDeprecated.length} variables were deprecated:`,
-      )
-      summary.addEOL().addRaw(element).addEOL()
-      // create a table with the collection and variable name
-      summary.addTable([
-        [
-          { data: 'Collection', header: true },
-          { data: 'Variable', header: true },
-        ],
-        ...stats.variablesDeprecated.map((variable) => [
-          variable.collection,
-          variable.variable,
-        ]),
-      ])
+    let message = ''
+
+    if (infoMessage) {
+      message += `[!${infoMessage.type.toUpperCase()}] ${infoMessage.message}\n`
+      if (infoMessage.code) {
+        message += infoMessage.code
+          .split('\n')
+          .map((line) => `> ${line}`)
+          .join('\n')
+      }
+      message += '\n'
     }
 
-    // Variables undeprecated
-    summary.addEOL().addHeading('Variables undeprecated', 4)
-    const element2 = summary.wrap(
-      'p',
-      'Variables where a deprecation warning was removed from the description.',
-    )
-    summary.addEOL().addRaw(element2).addEOL
-    if (stats.variablesUndeprecated.length === 0) {
-      const element = summary.wrap('p', 'No variables were undeprecated.')
-      summary.addEOL().addRaw(element).addEOL()
-    } else {
-      // create a table with the collection and variable name
-      summary.addTable([
-        [
-          { data: 'Collection', header: true },
-          { data: 'Variable', header: true },
-        ],
-        ...stats.variablesUndeprecated.map((variable) => [
-          variable.collection,
-          variable.variable,
-        ]),
-      ])
+    if ('stats' in data) {
+      const { stats } = data
+      message += 'Statistics:\n'
+      message += Object.entries({
+        '  - Modes created': stats.modesCreated.length,
+        '  - Variables created': stats.variablesCreated.length,
+        '  - Variable values updated': stats.variableValuesUpdated.length,
+        '  - Variables deprecated': stats.variablesDeprecated.length,
+        '  - Variables undeprecated': stats.variablesUndeprecated.length,
+      })
+        .filter(([_, count]) => count > 0)
+        .map(([label, count]) => `${label}: ${count}`)
+        .join('\n')
     }
 
-    if (index < data.length - 1) {
-      summary.addEOL().addSeparator().addEOL()
+    message = message.trim()
+
+    if (!message) {
+      return
+    }
+
+    const payload: SlackPayload = {
+      heading: data.jobName,
+      message,
+      actionURL: getGithubActionURL(),
     }
   }
 
-  summary.write()
-}
+  private async sendSlackWebhook(
+    webookUrl: string,
+    payload: Record<string, unknown>,
+  ) {
+    // first we need to ensure that all the values in the payload object are strings
+    const stringifiedPayload = Object.entries(payload).reduce(
+      (acc, [key, value]) => {
+        acc[key] = (value as string).toString()
+        return acc
+      },
+      {} as Record<string, string>,
+    )
 
-function setGithubWorkflowError(error: string | Error) {
-  const errorMessage =
-    typeof error === 'string'
-      ? error
-      : error.stack || error.message || 'An unknown error occurred.'
+    console.info('Sending Slack webhook:', JSON.stringify(stringifiedPayload))
 
-  summary.addEOL().addHeading('Central>Figma Variable Import Summary', 2)
-  summary.addEOL().addRaw('> [!CAUTION]').addEOL()
-  summary
-    .addEOL()
-    .addRaw('> An error occurred while running the script.')
-    .addEOL()
-  summary.addEOL().addRaw(`>`).addEOL()
-  summary.addEOL().addRaw(`> \`\`\``).addEOL()
-  errorMessage.split('\n').forEach((line) => {
-    summary.addEOL().addRaw(`> ${line}`).addEOL()
-  })
-  summary.addEOL().addRaw(`> \`\`\``).addEOL()
-  summary.write()
-}
-
-async function sendSlackWorkflowError(error: string | Error): Promise<void> {
-  if (!Config.slackWebhookUrlFailure) return
-
-  const payload: SlackErrorPayload = {
-    errorMessage: typeof error === 'string' ? error : error.message,
-    actionURL: getGithubActionURL(),
+    try {
+      const res = await fetch(webookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(stringifiedPayload),
+      })
+      if (!res.ok) {
+        console.error('Error sending Slack webhook:', res.statusText)
+        summary.addSeparator()
+        this.writeInfoBoxMessage({
+          type: 'warning',
+          message: 'An error occurred while sending the Slack webhook.',
+          code: res?.statusText.trim() !== '' ? res.statusText : undefined,
+        })
+        summary.write()
+      } else {
+        console.info('Slack webhook sent successfully.')
+      }
+    } catch (error) {
+      console.error('Error sending Slack webhook:', error)
+      summary.addSeparator()
+      this.writeInfoBoxMessage({
+        type: 'warning',
+        message: 'An error occurred while sending the Slack webhook.',
+        code: (error as Error).toString(),
+      })
+      summary.write()
+    }
   }
-
-  return sendSlackWebhook(Config.slackWebhookUrlFailure, payload)
 }
 
 // ----
@@ -364,60 +426,6 @@ function formatFigmaVariableValue(
   return value.toString()
 }
 
-async function sendSlackWebhook(
-  webookUrl: string,
-  payload: Record<string, unknown>,
-) {
-  // first we need to ensure that all the values in the payload object are strings
-  const stringifiedPayload = Object.entries(payload).reduce(
-    (acc, [key, value]) => {
-      acc[key] = (value as string).toString()
-      return acc
-    },
-    {} as Record<string, string>,
-  )
-
-  console.info('Sending Slack webhook:', JSON.stringify(stringifiedPayload))
-
-  try {
-    const res = await fetch(webookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(stringifiedPayload),
-    })
-    if (!res.ok) {
-      console.error('Error sending Slack webhook:', res.statusText)
-      summary.addSeparator()
-      summary.addEOL().addRaw('> [!WARNING]').addEOL()
-      summary
-        .addRaw('> An error occurred while sending the Slack webhook.')
-        .addEOL()
-      // if there is a status text, we add it to the summary
-      if (res?.statusText.trim() !== '') {
-        summary.addEOL().addRaw(`> \`\`\``).addEOL()
-        summary.addEOL().addRaw(`> ${res.statusText}`).addEOL()
-        summary.addEOL().addRaw(`> \`\`\``).addEOL()
-      }
-      summary.write()
-    } else {
-      console.info('Slack webhook sent successfully.')
-    }
-  } catch (error) {
-    console.error('Error sending Slack webhook:', error)
-    summary.addSeparator()
-    summary.addEOL().addRaw('> [!WARNING]').addEOL()
-    summary
-      .addRaw('> An error occurred while sending the Slack webhook.')
-      .addEOL()
-    summary
-      .addRaw(`> Error Message: \`${(error as Error).toString()}\``)
-      .addEOL()
-    summary.write()
-  }
-}
-
 function getGithubActionURL() {
   const runId = process.env.GITHUB_RUN_ID
   const repo = process.env.GITHUB_REPOSITORY
@@ -428,3 +436,5 @@ function getGithubActionURL() {
 
   return `https://github.com/${repo}/actions/runs/${runId}`
 }
+
+export default new WorkflowLogger()

@@ -40,6 +40,7 @@ export type ExtraStats = {
     newValue: FigmaVariableValue
     resolvedType: VariableCreate['resolvedType']
   }[]
+  emptyChangeset: boolean
   result?: PostVariablesResponse | ErrorResponsePayloadWithErrorBoolean | string
 }
 
@@ -77,6 +78,7 @@ class UpdateConstructor {
       modesCreated: [],
       variablesCreated: [],
       variableValuesUpdated: [],
+      emptyChangeset: true,
     }
   }
 
@@ -98,16 +100,18 @@ class UpdateConstructor {
   }
 
   async submitChanges(dryRun: boolean) {
+    const changes = Object.fromEntries(
+      Object.entries(this.changes).filter(([, value]) => value.length > 0),
+    )
+    const noChanges = Object.keys(changes).length === 0
+    this.extraStats.emptyChangeset = noChanges
+
     if (dryRun) {
       console.info('Dry run: No changes to submit')
       return
     }
 
-    const changes = Object.fromEntries(
-      Object.entries(this.changes).filter(([, value]) => value.length > 0),
-    )
-
-    if (Object.keys(changes).length === 0) {
+    if (noChanges) {
       console.info('No changes to submit')
       return
     }

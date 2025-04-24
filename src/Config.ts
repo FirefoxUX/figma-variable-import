@@ -5,8 +5,8 @@ const FIGMA_URL_REGEX =
   /https:\/\/[\w.-]+\.?figma.com\/([\w-]+)\/([0-9a-zA-Z]{22,128})(?:\/([\w-]+)\/([0-9a-zA-Z]{22,128}))?(?:\/.*)?$/
 
 class Config {
-  public readonly figmaFileId: string
-  public readonly figmaColorsFileId: string
+  public readonly figmaIdDesktopStyles: string
+  public readonly figmaIdFirefoxColors: string
   public readonly centralCurrentColorAlias: string
   public readonly centralSource: {
     colors: string
@@ -17,6 +17,7 @@ class Config {
   public readonly figmaAccessToken: string
   public readonly slackWebhookUrlSuccess: string | undefined
   public readonly slackWebhookUrlFailure: string | undefined
+  public readonly onlyRunJobs: string[] | undefined
   public readonly dryRun: boolean
 
   constructor() {
@@ -26,11 +27,15 @@ class Config {
       config.env = {}
     }
 
-    this.figmaFileId = this.parseFigmaUrl(
-      config.env.FIGMA_URL || process.env.INPUT_FIGMA_URL,
+    this.figmaIdDesktopStyles = this.parseFigmaUrl(
+      'FIGMA_URL_DESKTOP_STYLES',
+      config.env.FIGMA_URL_DESKTOP_STYLES ||
+        process.env.INPUT_FIGMA_URL_DESKTOP_STYLES,
     )
-    this.figmaColorsFileId = this.parseFigmaUrl(
-      config.env.FIGMA_COLORS_URL || process.env.INPUT_FIGMA_COLORS_URL,
+    this.figmaIdFirefoxColors = this.parseFigmaUrl(
+      'FIGMA_URL_FIREFOX_COLORS',
+      config.env.FIGMA_URL_FIREFOX_COLORS ||
+        process.env.INPUT_FIGMA_URL_FIREFOX_COLORS,
     )
     this.centralCurrentColorAlias = config.centralCurrentColorAlias
     this.centralSource = config.centralSource
@@ -45,6 +50,12 @@ class Config {
     this.slackWebhookUrlFailure =
       config.env.SLACK_WEBHOOK_FAILURE ||
       process.env.INPUT_SLACK_WEBHOOK_FAILURE
+    this.onlyRunJobs =
+      config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS
+        ? (config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS)
+            .split(',')
+            .map((job: string) => job.trim())
+        : undefined
     this.dryRun =
       config.env.DRY_RUN === 'true' ||
       process.env.INPUT_DRY_RUN === 'true' ||
@@ -53,19 +64,17 @@ class Config {
     this.testConfig()
   }
 
-  private parseFigmaUrl(figmaURL: string | undefined) {
+  private parseFigmaUrl(name: string, figmaURL: string | undefined) {
     if (!figmaURL || figmaURL === '') {
-      throw new Error('Error loading config: FIGMA_URL is undefined')
+      throw new Error(`Error loading config: ${name} is undefined`)
     }
     const match = figmaURL.match(FIGMA_URL_REGEX)
     if (!match) {
-      throw new Error(
-        'Error loading config: FIGMA_URL is not a valid Figma URL',
-      )
+      throw new Error(`Error loading config: ${name} is not a valid Figma URL`)
     }
     if (match[1] !== 'design') {
       throw new Error(
-        `Error loading config: FIGMA_URL is not a design URL, it is ${match[1]}`,
+        `Error loading config: ${name} is not a design URL, it is ${match[1]}`,
       )
     }
     // if match[3] === 'branch', then we have a branch URL and can replace figmaFileId with match[4]
@@ -77,10 +86,16 @@ class Config {
   }
 
   private testConfig() {
-    if (this.figmaFileId === undefined || this.figmaFileId === '') {
+    if (
+      this.figmaIdDesktopStyles === undefined ||
+      this.figmaIdDesktopStyles === ''
+    ) {
       throw new Error('Error loading config: figmaFileId is undefined')
     }
-    if (this.figmaColorsFileId === undefined || this.figmaColorsFileId === '') {
+    if (
+      this.figmaIdFirefoxColors === undefined ||
+      this.figmaIdFirefoxColors === ''
+    ) {
       throw new Error('Error loading config: figmaFileId is undefined')
     }
     if (this.centralCurrentColorAlias === undefined) {

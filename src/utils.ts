@@ -175,3 +175,32 @@ export function roundTo(value: number, decimals: number = 2): number {
   const factor = Math.pow(10, decimals)
   return Math.round((value + Number.EPSILON) * factor) / factor
 }
+
+type AnyFunc<T = any> = (...args: any[]) => T
+
+export function memoize<T extends AnyFunc>(fn: T): T {
+  const cache = new Map<string, any>()
+
+  const memoizedFn = (...args: Parameters<T>): ReturnType<T> => {
+    const key = JSON.stringify(args)
+    if (cache.has(key)) {
+      return cache.get(key)
+    }
+
+    const result = fn(...args)
+    if (result instanceof Promise) {
+      // Store the pending promise and update cache once resolved
+      const promise = result.then((res) => {
+        cache.set(key, res)
+        return res
+      })
+      cache.set(key, promise) // Prevent multiple calls while waiting
+      return promise as ReturnType<T>
+    } else {
+      cache.set(key, result)
+      return result
+    }
+  }
+
+  return memoizedFn as T
+}
