@@ -30,8 +30,8 @@ async function run() {
       FigmaAPIURLs.getLocalVariables(Config.figmaFileId),
     )
 
-    const centralData = await getCentralCollectionValues()
-    const relativeData = constructRelativeData(centralData.relative)
+  const centralData = await getCentralCollectionValues()
+  const relativeData = constructRelativeData(centralData.relative)
   // get the Colors from the central data, delete it from the centralData
   const { Colors, ...centralDataWithoutColors } = centralData.central
 

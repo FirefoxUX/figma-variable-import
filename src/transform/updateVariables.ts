@@ -1,4 +1,3 @@
-
 import { RGBA, VariableAlias } from '@figma/rest-api-spec'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
