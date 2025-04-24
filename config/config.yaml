@@ -24,6 +24,7 @@ figmaOnlyVariables:
   - 'border/color/default'
   - 'background/color/tabstrip'
   - 'background/color/toolbar'
+  - 'background/color/tab'
   - 'background/color/canvas-v2'
   - 'background/color/backdrop'
   - 'color/accent/primary/deemphasized'
