@@ -84,7 +84,7 @@ class WorkflowLogger {
     summary.addEOL().addSeparator().addEOL()
     for (let i = 0; i < this.data.length; i++) {
       const entry = this.data[i]
-      let infoMessage = this.getJobInfo(entry)
+      const infoMessage = this.getJobInfo(entry)
       this.createJobSummary(entry, infoMessage)
       this.createJobSlackMessage(entry, infoMessage)
       if (i < this.data.length - 1) {
@@ -206,7 +206,7 @@ class WorkflowLogger {
           'p',
           'Variables where a deprecation warning was removed from the description.',
         )
-        summary.addEOL().addRaw(element2).addEOL
+        summary.addEOL().addRaw(element2).addEOL()
         // create a table with the collection and variable name
         summary.addTable([
           [
@@ -320,18 +320,14 @@ class WorkflowLogger {
     if (!message) {
       return
     }
-
-    const payload: SlackPayload = {
+    await this.sendSlackWebhook(webookUrl, {
       heading: data.jobName,
       message,
       actionURL: getGithubActionURL(),
-    }
+    })
   }
 
-  private async sendSlackWebhook(
-    webookUrl: string,
-    payload: Record<string, unknown>,
-  ) {
+  private async sendSlackWebhook(webookUrl: string, payload: SlackPayload) {
     // first we need to ensure that all the values in the payload object are strings
     const stringifiedPayload = Object.entries(payload).reduce(
       (acc, [key, value]) => {

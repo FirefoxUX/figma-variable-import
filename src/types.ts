@@ -7,6 +7,7 @@ import {
   VariableCreate,
 } from '@figma/rest-api-spec'
 import { SYMBOL_RESOLVED_TYPE } from './utils.js'
+import { Rgb } from 'culori'
 
 // ---
 // CENTRAL
@@ -17,7 +18,7 @@ import { SYMBOL_RESOLVED_TYPE } from './utils.js'
  * the value is the value of the variable in that mode
  */
 export type CentralVariable = {
-  [key: string]: number | boolean | string | any
+  [key: string]: number | boolean | string | Rgb
 }
 /**
  * Extends the {@link CentralVariable} type by adding the resolved type
@@ -65,6 +66,7 @@ export type TypedCentralCollections = {
 export type FigmaCollection = {
   collection: LocalVariableCollection
   variables: LocalVariable[]
+  toJSON: () => string
 }
 
 export type FigmaCollections = {

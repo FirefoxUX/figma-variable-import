@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug with tsx (src)",
+        "runtimeExecutable": "npx",
+        "runtimeArgs": ["tsx", "src/index.ts"],
+        "skipFiles": ["<node_internals>/**"],
+        "sourceMaps": true,
+        "env": {
+          "NODE_ENV": "development"
+        },
+        "cwd": "${workspaceFolder}"
+      },
+      {
+        "type": "node",
+        "request": "launch",
+        "name": "Debug built output (dist)",
+        "program": "${workspaceFolder}/dist/index.js",
+        "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+        "skipFiles": ["<node_internals>/**"],
+        "sourceMaps": true,
+        "env": {
+          "NODE_ENV": "production"
+        },
+        "cwd": "${workspaceFolder}"
+      }
+    ]
+  }
+  

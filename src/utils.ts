@@ -178,25 +178,58 @@ export function roundTo(value: number, decimals: number = 2): number {
   return Math.round((value + Number.EPSILON) * factor) / factor
 }
 
-type AnyFunc<T = any> = (...args: any[]) => T
+const memoStats = new Map<string, { hits: number; misses: number }>()
+function recordMemoStat(name: string, hit: boolean) {
+  if (!memoStats.has(name)) {
+    memoStats.set(name, { hits: 0, misses: 0 })
+  }
+  const stats = memoStats.get(name)!
+  if (hit) {
+    stats.hits++
+  } else {
+    stats.misses++
+  }
+}
+export function getMemoStats() {
+  return Array.from(memoStats.entries()).map(([name, { hits, misses }]) => ({
+    name,
+    hits,
+    misses,
+  }))
+}
 
-export function memoize<T extends AnyFunc>(fn: T): T {
-  const cache = new Map<string, any>()
+type AnyFunc<T = unknown> = (...args: unknown[]) => T
+export function memoize<T extends AnyFunc>(fn: T, givenName?: string): T {
+  const cache = new Map<string, ReturnType<T> | Promise<ReturnType<T>>>()
+
+  const fnName = givenName || fn.name || getNameFromStackTrace(new Error())
 
   const memoizedFn = (...args: Parameters<T>): ReturnType<T> => {
     const key = JSON.stringify(args)
-    if (cache.has(key)) {
-      return cache.get(key)
+
+    // throw an error if the key is too long
+    if (key.length > 1000) {
+      throw new Error(
+        `Memoization arguments are too large. Key length: ${key.length}. Max length: 1000. Try to use toJSON on complex objects.`,
+      )
     }
 
-    const result = fn(...args)
+    if (cache.has(key)) {
+      recordMemoStat(fnName, true)
+      const cachedValue = cache.get(key)!
+      return cachedValue as ReturnType<T>
+    }
+    recordMemoStat(fnName, false)
+
+    const result = fn(...args) as ReturnType<T>
     if (result instanceof Promise) {
       // Store the pending promise and update cache once resolved
       const promise = result.then((res) => {
         cache.set(key, res)
         return res
       })
-      cache.set(key, promise) // Prevent multiple calls while waiting
+      // Prevent multiple calls while waiting
+      cache.set(key, promise as Promise<ReturnType<T>>)
       return promise as ReturnType<T>
     } else {
       cache.set(key, result)
@@ -205,4 +238,13 @@ export function memoize<T extends AnyFunc>(fn: T): T {
   }
 
   return memoizedFn as T
+}
+
+function getNameFromStackTrace(error: Error): string {
+  const stack = error.stack
+  if (!stack) return 'Unknown function'
+
+  const lines = stack.split('\n')
+  const match = lines[1].match(/at (\w+)/)
+  return match ? match[1] : 'Unknown function'
 }

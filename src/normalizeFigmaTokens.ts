@@ -3,7 +3,7 @@ import {
   GetPublishedVariablesResponse,
   PublishedVariable,
 } from '@figma/rest-api-spec'
-import { FigmaCollections, FigmaResultCollection } from 'types.js'
+import { FigmaCollections, FigmaResultCollection } from './types.js'
 
 /**
  * Sorts the Figma variables based on their collection.
@@ -27,6 +27,7 @@ export function normalizeFigmaTokens(
     )
 
     acc[collection.name] = {
+      toJSON: () => `${collection.key}`,
       collection,
       variables,
     }

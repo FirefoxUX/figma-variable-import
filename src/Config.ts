@@ -23,6 +23,14 @@ class Config {
   public readonly onlyRunJobs: string[] | undefined
   public readonly dryRun: boolean
 
+  get<K extends keyof Config>(name: K): NonNullable<Config[K]> {
+    const value = this[name]
+    if (value === undefined || value === null) {
+      throw new Error(`Error loading config item: ${name} is not defined`)
+    }
+    return value as NonNullable<Config[K]>
+  }
+
   constructor() {
     const config = YAML.parse(readFileSync('./config/config.yaml', 'utf8'))
 

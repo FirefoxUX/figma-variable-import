@@ -1,6 +1,6 @@
-import Config from 'Config.js'
+import Config from './Config.js'
 import WorkflowLogger from './workflow/index.js'
-import jobs from 'jobs.js'
+import jobs from './jobs.js'
 
 async function run() {
   const availableJobs =

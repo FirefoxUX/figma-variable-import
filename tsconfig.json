@@ -13,6 +13,5 @@
     "outDir": "./dist",
     "removeComments": true,
     "resolveJsonModule": true,
-    "baseUrl": "./src",
   }
 }

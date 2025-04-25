@@ -7,21 +7,23 @@
     "start": "tsx ./src/index.ts",
     "copy": "copyfiles -u 1 -e \"**/*.ts\" \"src/**/*\" dist",
     "build": "tsc && npm run copy",
-    "lint": "eslint -c .eslintrc.cjs src/",
-    "prettier": "prettier -c .prettierrc.cjs --write --check 'src/**/*.*'"
+    "lint": "eslint src/",
+    "prettier": "prettier --write --check 'src/**/*.*'"
   },
   "license": "MPL-2.0",
   "devDependencies": {
-    "@figma/rest-api-spec": "^0.27.0",
-    "@prettier/plugin-xml": "^3.4.1",
+    "@eslint/js": "^9.25.1",
+    "@figma/rest-api-spec": "^0.29.0",
     "@types/culori": "^2.1.1",
-    "@types/node": "^22.14.0",
-    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@types/node": "^22.15.2",
     "copyfiles": "^2.4.1",
-    "eslint": "^9.24.0",
+    "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.2",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
     "tsx": "^4.19.3",
-    "typescript": "5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.31.0"
   },
   "dependencies": {
     "culori": "^4.0.1",

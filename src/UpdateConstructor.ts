@@ -14,8 +14,6 @@ import {
   FigmaCollections,
   FigmaResultCollection,
   FigmaVariableValue,
-  TypedCentralCollections,
-  TypedCentralVariable,
 } from './types.js'
 import { FigmaAPIURLs, extractAliasParts, fetchFigmaAPI } from './utils.js'
 import { addModesDefinitions } from './transform/modeDefinitions.js'

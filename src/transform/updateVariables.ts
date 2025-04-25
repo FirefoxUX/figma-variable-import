@@ -10,7 +10,6 @@ import {
 } from '../utils.js'
 
 import {
-  FigmaResultCollection,
   FigmaVariableData,
   TypedCentralCollections,
   TypedCentralVariable,
