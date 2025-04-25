@@ -213,6 +213,9 @@ class WorkflowLogger {
         return infoMessage;
     }
     async createJobSlackMessage(data, infoMessage) {
+        if ('stats' in data && data.stats.emptyChangeset === true) {
+            return;
+        }
         const webookUrl = 'stats' in data
             ? Config.slackWebhookUrlSuccess
             : Config.slackWebhookUrlFailure;
@@ -221,7 +224,7 @@ class WorkflowLogger {
         }
         let message = '';
         if (infoMessage) {
-            message += `[!${infoMessage.type.toUpperCase()}] ${infoMessage.message}\n`;
+            message += `[${infoMessage.type.toUpperCase()}] ${infoMessage.message}\n`;
             if (infoMessage.code) {
                 message += infoMessage.code
                     .split('\n')
@@ -232,7 +235,7 @@ class WorkflowLogger {
         }
         if ('stats' in data) {
             const { stats } = data;
-            message += 'Statistics:\n';
+            message += 'Overview:\n';
             message += Object.entries({
                 '  - Modes created': stats.modesCreated.length,
                 '  - Variables created': stats.variablesCreated.length,
