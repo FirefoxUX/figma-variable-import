@@ -19,10 +19,11 @@ export function updateVariableDefinitions(
   tokens: TypedCentralCollections,
   handleDeprecation = false,
 ) {
+  const figmaTokens = uc.getFigmaTokens()
   for (const collectionLabel in tokens) {
     const sets = generateVariableSets(
       tokens[collectionLabel],
-      uc.figmaTokens[collectionLabel],
+      figmaTokens[collectionLabel],
     )
 
     // Create variables that are only in the central collection
@@ -38,7 +39,7 @@ export function updateVariableDefinitions(
         if (Config.figmaOnlyVariables?.includes(key)) {
           continue
         }
-        const variableData = uc.figmaTokens[collectionLabel].variables.find(
+        const variableData = figmaTokens[collectionLabel].variables.find(
           (v) => v.name === key,
         )
         if (!variableData) {
@@ -60,7 +61,7 @@ export function updateVariableDefinitions(
 
       // Remove deprecation tags from variables that are in both collections
       for (const key of sets.inBoth) {
-        const variableData = uc.figmaTokens[collectionLabel].variables.find(
+        const variableData = figmaTokens[collectionLabel].variables.find(
           (v) => v.name === key,
         )
         if (!variableData) {

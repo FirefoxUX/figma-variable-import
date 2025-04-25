@@ -14,19 +14,20 @@ export function addModesDefinitions(
   uc: UpdateConstructor,
   tokens: TypedCentralCollections,
 ) {
+  const figmaTokens = uc.getFigmaTokens()
   for (const collectionLabel in tokens) {
     // Throw an error if the collection is missing in the figma file.
-    if (!uc.figmaTokens[collectionLabel]) {
+    if (!figmaTokens[collectionLabel]) {
       throw new Error(
         `The collection '${collectionLabel}' is missing in the figma file. Please add it to the figma file before running the script again.
-Figma collections: ${Object.keys(uc.figmaTokens).join(', ')}
+Figma collections: ${Object.keys(figmaTokens).join(', ')}
 Central collections: ${Object.keys(tokens).join(', ')}`,
       )
     }
     // Generate a set of modes only present in the central collection.
     const { onlyInCentral } = generateModeSets(
       tokens[collectionLabel],
-      uc.figmaTokens[collectionLabel],
+      figmaTokens[collectionLabel],
     )
     // Create a variable mode for each mode only present in the central collection.
     for (const key of onlyInCentral) {

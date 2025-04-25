@@ -103,7 +103,7 @@ export const SYMBOL_RESOLVED_TYPE = Symbol('resolvedType')
 
 // 'BOOLEAN' | 'FLOAT' | 'STRING' | 'COLOR'
 export function determineResolvedType(
-  value: string | number | boolean,
+  value: string | number | boolean | Rgb,
 ): VariableCreate['resolvedType'] {
   // check if it's a boolean
   if (typeof value === 'boolean') {
@@ -150,7 +150,7 @@ export function extractAliasParts(
 
 export function determineResolvedTypeWithAlias(
   collections: TypedCentralCollections,
-  value: string | number | boolean,
+  value: string | number | boolean | Rgb,
   fileVariables?: FigmaResultCollection,
 ): VariableCreate['resolvedType'] | null {
   const resolvedType = determineResolvedType(value)
