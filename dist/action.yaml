@@ -8,6 +8,8 @@ inputs:
     description: 'URL of the Figma file for Firefox colors'
   FIGMA_URL_ANDROID_COMPONENTS:
     description: 'URL of the Figma file for Android components'
+  FIGMA_URL_MOBILE_STYLES:
+    description: 'URL of the Figma file for mobile styles'
   FIGMA_ACCESS_TOKEN:
     description: 'Access token to authenticate with Figma'
     required: true

@@ -100,14 +100,6 @@ class Config {
         }
     }
     testConfig() {
-        if (this.figmaIdDesktopStyles === undefined ||
-            this.figmaIdDesktopStyles === '') {
-            throw new Error('Error loading config: figmaFileId is undefined');
-        }
-        if (this.figmaIdFirefoxColors === undefined ||
-            this.figmaIdFirefoxColors === '') {
-            throw new Error('Error loading config: figmaFileId is undefined');
-        }
         if (this.centralCurrentColorAlias === undefined) {
             throw new Error('Error loading config: centralCurrentColorAlias is undefined');
         }
