@@ -1,5 +1,3 @@
-// @ts-check
-
 import eslint from '@eslint/js'
 import prettierConfig from 'eslint-config-prettier'
 import tseslint from 'typescript-eslint'
@@ -7,10 +5,13 @@ import globals from 'globals'
 
 export default tseslint.config(
   {
-    // enable node globals
     languageOptions: {
       globals: {
         ...globals.nodeBuiltin,
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     rules: {
@@ -27,8 +28,9 @@ export default tseslint.config(
         },
       ],
     },
+    ignorePatterns: ['**/*.config.js'],
   },
   eslint.configs.recommended,
-  tseslint.configs.recommended,
+  tseslint.configs.recommendedTypeChecked,
   prettierConfig,
 )

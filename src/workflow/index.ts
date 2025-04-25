@@ -85,17 +85,20 @@ class WorkflowLogger {
     for (let i = 0; i < this.data.length; i++) {
       const entry = this.data[i]
       const infoMessage = this.getJobInfo(entry)
-      this.createJobSummary(entry, infoMessage)
-      this.createJobSlackMessage(entry, infoMessage)
+      await this.createJobSummary(entry, infoMessage)
+      await this.createJobSlackMessage(entry, infoMessage)
       if (i < this.data.length - 1) {
         summary.addEOL().addSeparator().addEOL()
       }
     }
 
-    summary.write()
+    await summary.write()
   }
 
-  private createJobSummary(data: WorkflowData, infoMessage?: InfoBoxMessage) {
+  private async createJobSummary(
+    data: WorkflowData,
+    infoMessage?: InfoBoxMessage,
+  ) {
     const { jobId, jobName } = data
     summary
       .addRaw(summary.wrap('h3', jobName, { id: `job-${jobId}` }))
@@ -220,13 +223,13 @@ class WorkflowLogger {
         ])
       }
     }
-    summary.write()
+    await summary.write()
   }
 
   private getJobInfo(data: WorkflowData): InfoBoxMessage | undefined {
     let infoMessage: InfoBoxMessage | undefined
     if ('error' in data) {
-      const error = data.error as string | Error
+      const error = data.error
       const errorMessage =
         typeof error === 'string'
           ? error
@@ -331,7 +334,7 @@ class WorkflowLogger {
     // first we need to ensure that all the values in the payload object are strings
     const stringifiedPayload = Object.entries(payload).reduce(
       (acc, [key, value]) => {
-        acc[key] = (value as string).toString()
+        acc[key] = value.toString()
         return acc
       },
       {} as Record<string, string>,
@@ -355,7 +358,7 @@ class WorkflowLogger {
           message: 'An error occurred while sending the Slack webhook.',
           code: res?.statusText.trim() !== '' ? res.statusText : undefined,
         })
-        summary.write()
+        await summary.write()
       } else {
         console.info('Slack webhook sent successfully.')
       }
@@ -367,7 +370,7 @@ class WorkflowLogger {
         message: 'An error occurred while sending the Slack webhook.',
         code: (error as Error).toString(),
       })
-      summary.write()
+      await summary.write()
     }
   }
 }
@@ -419,7 +422,7 @@ function formatFigmaVariableValue(
   if (resolvedType === 'FLOAT') {
     return roundTo(value as number, 4).toString()
   }
-  return value.toString()
+  return typeof value === 'object' ? JSON.stringify(value) : value.toString()
 }
 
 function getGithubActionURL() {

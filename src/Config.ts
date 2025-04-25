@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { readFileSync } from 'fs'
 import YAML from 'yaml'
 
@@ -78,7 +81,9 @@ class Config {
 
     const onlyRunJobsValue =
       config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     if (onlyRunJobsValue && onlyRunJobsValue.toLowerCase() !== 'all') {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const array = onlyRunJobsValue
         .split(',')
         .map((job: string) => job.trim())

@@ -89,3 +89,10 @@ export type FigmaVariableValue =
   | boolean
   | RGBA
   | VariableAlias
+
+export type FigmaResponseWrapper<T> = {
+  status: number
+  error: boolean
+  message?: string
+  data?: T
+}

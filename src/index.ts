@@ -34,13 +34,13 @@ async function run() {
   await WorkflowLogger.finalize()
 }
 
-run().catch((error) => {
+run().catch(async (error) => {
   WorkflowLogger.documentJob({
     jobId: 'ROOT',
     jobName: 'Runtime',
-    error: error,
+    error: error as string | Error,
   })
-  WorkflowLogger.finalize().then(() => {
+  await WorkflowLogger.finalize().then(() => {
     throw error
   })
 })

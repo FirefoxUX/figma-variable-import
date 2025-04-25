@@ -1,4 +1,4 @@
-import { RGBA, VariableAlias } from '@figma/rest-api-spec'
+import { VariableAlias } from '@figma/rest-api-spec'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
   isFigmaAlias,
@@ -148,7 +148,7 @@ function checkIfUpdateRequired(
         requiresUpdate = true
       } else {
         const centralParsed = customParse(centralValue as string)!
-        const figmaParsed = figmaToCulori(figmaVariableData.value as RGBA)
+        const figmaParsed = figmaToCulori(figmaVariableData.value)
         if (
           figmaParsed === undefined ||
           !compareColors(centralParsed, figmaParsed)

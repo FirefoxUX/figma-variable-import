@@ -1,5 +1,3 @@
-// @ts-check
-
 const config = {
   semi: false,
   trailingComma: 'all',

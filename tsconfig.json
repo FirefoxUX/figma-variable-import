@@ -12,6 +12,6 @@
     "skipLibCheck": true,
     "outDir": "./dist",
     "removeComments": true,
-    "resolveJsonModule": true,
+    "resolveJsonModule": true
   }
 }

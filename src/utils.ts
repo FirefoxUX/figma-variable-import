@@ -1,5 +1,9 @@
 import { RGBA, VariableAlias, VariableCreate } from '@figma/rest-api-spec'
-import { FigmaResultCollection, TypedCentralCollections } from './types.js'
+import {
+  FigmaResponseWrapper,
+  FigmaResultCollection,
+  TypedCentralCollections,
+} from './types.js'
 import Config from './Config.js'
 import { Color, customParse, formatHex8, type Rgb } from './color.js'
 
@@ -30,7 +34,7 @@ export async function fetchFigmaAPI<T>(
 
   try {
     const response = await fetch(url, finalOptions)
-    const data = await response.json()
+    const data = (await response.json()) as FigmaResponseWrapper<T>
     if (data.error === true) {
       throw new Error(
         `When fetching Figma API, an error occurred: ${data.message}`,
@@ -198,13 +202,18 @@ export function getMemoStats() {
   }))
 }
 
-type AnyFunc<T = unknown> = (...args: unknown[]) => T
-export function memoize<T extends AnyFunc>(fn: T, givenName?: string): T {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function memoize<T extends (...args: any[]) => any>(
+  fn: T,
+  givenName?: string,
+): T {
   const cache = new Map<string, ReturnType<T> | Promise<ReturnType<T>>>()
 
   const fnName = givenName || fn.name || getNameFromStackTrace(new Error())
 
-  const memoizedFn = (...args: Parameters<T>): ReturnType<T> => {
+  const memoizedFn: (...args: Parameters<T>) => ReturnType<T> = (
+    ...args: Parameters<T>
+  ): ReturnType<T> => {
     const key = JSON.stringify(args)
 
     // throw an error if the key is too long
@@ -217,11 +226,12 @@ export function memoize<T extends AnyFunc>(fn: T, givenName?: string): T {
     if (cache.has(key)) {
       recordMemoStat(fnName, true)
       const cachedValue = cache.get(key)!
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return cachedValue as ReturnType<T>
     }
     recordMemoStat(fnName, false)
 
-    const result = fn(...args) as ReturnType<T>
+    const result = fn(...args) as ReturnType<T> | Promise<ReturnType<T>>
     if (result instanceof Promise) {
       // Store the pending promise and update cache once resolved
       const promise = result.then((res) => {
@@ -229,10 +239,12 @@ export function memoize<T extends AnyFunc>(fn: T, givenName?: string): T {
         return res
       })
       // Prevent multiple calls while waiting
-      cache.set(key, promise as Promise<ReturnType<T>>)
+      cache.set(key, promise)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return promise as ReturnType<T>
     } else {
       cache.set(key, result)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return result
     }
   }
