@@ -48,7 +48,7 @@ class WorkflowLogger {
       summary.addEOL().addRaw(`>`).addEOL()
       summary.addEOL().addRaw(`> \`\`\``).addEOL()
       info.code.split('\n').forEach((line) => {
-        summary.addEOL().addRaw(`> ${line}`).addEOL()
+        summary.addRaw(`> ${line}`).addEOL()
       })
       summary.addEOL().addRaw(`> \`\`\``).addEOL()
     }

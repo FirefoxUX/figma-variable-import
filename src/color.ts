@@ -16,6 +16,14 @@ const rgb = converter('rgb')
 
 export { formatHex8, formatHex, type Color, type Rgb, rgb }
 export const customParse: typeof parse = (...args) => {
+  // check if already a culori color
+  if (args.length === 1 && typeof args[0] === 'object') {
+    const color = args[0] as Color
+    if ('mode' in color) {
+      return color
+    }
+  }
+
   const result = parse(...args)
   if (result?.mode === 'oklch') {
     const srgb = oklchToSrgb(result as OklchColor)

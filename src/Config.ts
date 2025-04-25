@@ -5,8 +5,11 @@ const FIGMA_URL_REGEX =
   /https:\/\/[\w.-]+\.?figma.com\/([\w-]+)\/([0-9a-zA-Z]{22,128})(?:\/([\w-]+)\/([0-9a-zA-Z]{22,128}))?(?:\/.*)?$/
 
 class Config {
-  public readonly figmaIdDesktopStyles: string
-  public readonly figmaIdFirefoxColors: string
+  public readonly figmaIdDesktopStyles: string | undefined
+  public readonly figmaIdFirefoxColors: string | undefined
+  public readonly figmaIdAndroidComponents: string | undefined
+  public readonly figmaIdMobileStyles: string | undefined
+
   public readonly centralCurrentColorAlias: string
   public readonly centralSource: {
     colors: string
@@ -37,6 +40,16 @@ class Config {
       config.env.FIGMA_URL_FIREFOX_COLORS ||
         process.env.INPUT_FIGMA_URL_FIREFOX_COLORS,
     )
+    this.figmaIdAndroidComponents = this.parseFigmaUrl(
+      'FIGMA_URL_ANDROID_COMPONENTS',
+      config.env.FIGMA_URL_ANDROID_COMPONENTS ||
+        process.env.INPUT_FIGMA_URL_ANDROID_COMPONENTS,
+    )
+    this.figmaIdMobileStyles = this.parseFigmaUrl(
+      'FIGMA_URL_MOBILE_STYLES',
+      config.env.FIGMA_URL_MOBILE_STYLES ||
+        process.env.INPUT_FIGMA_URL_MOBILE_STYLES,
+    )
     this.centralCurrentColorAlias = config.centralCurrentColorAlias
     this.centralSource = config.centralSource
     this.figmaOnlyVariables = config.figmaOnlyVariables
@@ -50,23 +63,27 @@ class Config {
     this.slackWebhookUrlFailure =
       config.env.SLACK_WEBHOOK_FAILURE ||
       process.env.INPUT_SLACK_WEBHOOK_FAILURE
-    this.onlyRunJobs =
-      config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS
-        ? (config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS)
-            .split(',')
-            .map((job: string) => job.trim())
-        : undefined
     this.dryRun =
       config.env.DRY_RUN === 'true' ||
       process.env.INPUT_DRY_RUN === 'true' ||
       false
+
+    const onlyRunJobsValue =
+      config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS
+    if (onlyRunJobsValue && onlyRunJobsValue.toLowerCase() !== 'all') {
+      const array = onlyRunJobsValue
+        .split(',')
+        .map((job: string) => job.trim())
+        .filter((job: string) => job !== '')
+      this.onlyRunJobs = array.length > 0 ? array : undefined
+    }
 
     this.testConfig()
   }
 
   private parseFigmaUrl(name: string, figmaURL: string | undefined) {
     if (!figmaURL || figmaURL === '') {
-      throw new Error(`Error loading config: ${name} is undefined`)
+      return undefined
     }
     const match = figmaURL.match(FIGMA_URL_REGEX)
     if (!match) {

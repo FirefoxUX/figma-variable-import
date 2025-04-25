@@ -22,6 +22,7 @@ import { addModesDefinitions } from './transform/modeDefinitions.js'
 import { updateVariableDefinitions } from './transform/variableDefinitions.js'
 import { updateVariables } from './transform/updateVariables.js'
 import { inferResolvedTypes } from './inferResolvedTypes.js'
+import { inspect } from 'util'
 
 export type ExtraStats = {
   variablesDeprecated: { collection: string; variable: string }[]
@@ -43,8 +44,6 @@ export type ExtraStats = {
   emptyChangeset: boolean
   result?: PostVariablesResponse | ErrorResponsePayloadWithErrorBoolean | string
 }
-
-import { inspect } from 'util'
 
 /**
  * This class is used to keep track of changes that need to be submitted to the Figma API.
@@ -378,7 +377,10 @@ class UpdateConstructor {
     )
   }
 
-  constructUpdate(colorsCollections: CentralCollections) {
+  constructUpdate(
+    colorsCollections: CentralCollections,
+    handleDeprecation = false,
+  ) {
     // Infer the resolved types of the collections
     const inferredC = inferResolvedTypes(colorsCollections, this.fileVariables)
 
@@ -386,7 +388,7 @@ class UpdateConstructor {
     addModesDefinitions(this, inferredC)
 
     //Iterate over collections and add missing variables
-    updateVariableDefinitions(this, inferredC)
+    updateVariableDefinitions(this, inferredC, handleDeprecation)
 
     // STEP 4: Update the values of the variables
     updateVariables(this, inferredC)

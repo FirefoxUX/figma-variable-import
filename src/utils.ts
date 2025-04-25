@@ -118,7 +118,9 @@ export function determineResolvedType(
     return 'STRING'
   }
   // if none of the above, throw an error
-  throw new Error(`Could not determine type for value: ${value}`)
+  throw new Error(
+    `Could not determine type for value: ${JSON.stringify(value)}`,
+  )
 }
 
 const ALIAS_REGEX = /{([^$]+)\$([^}]+)}/

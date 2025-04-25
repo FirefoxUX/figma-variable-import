@@ -17,6 +17,7 @@ import { SYMBOL_RESOLVED_TYPE } from '../utils.js'
 export function updateVariableDefinitions(
   uc: UpdateConstructor,
   tokens: TypedCentralCollections,
+  handleDeprecation = false,
 ) {
   for (const collectionLabel in tokens) {
     const sets = generateVariableSets(
@@ -31,48 +32,52 @@ export function updateVariableDefinitions(
       uc.createVariable(key, collectionLabel, resolvedType)
     }
 
-    // Add deprecation tags to variables that are only in the Figma collection
-    for (const key of sets.onlyInFigma) {
-      if (Config.figmaOnlyVariables?.includes(key)) {
-        continue
-      }
-      const variableData = uc.figmaTokens[collectionLabel].variables.find(
-        (v) => v.name === key,
-      )
-      if (!variableData) {
-        throw new Error(
-          `When adding deprecation tags, the variable ${key} could not be found in the Figma tokens`,
+    if (handleDeprecation) {
+      // Add deprecation tags to variables that are only in the Figma collection
+      for (const key of sets.onlyInFigma) {
+        if (Config.figmaOnlyVariables?.includes(key)) {
+          continue
+        }
+        const variableData = uc.figmaTokens[collectionLabel].variables.find(
+          (v) => v.name === key,
         )
+        if (!variableData) {
+          throw new Error(
+            `When adding deprecation tags, the variable ${key} could not be found in the Figma tokens`,
+          )
+        }
+        const newDescription = potentiallyAddDeprecated(
+          variableData.description,
+        )
+        if (newDescription) {
+          uc.updateVariable({
+            id: variableData.id,
+            description: newDescription,
+          })
+          uc.addDeprecationStat(collectionLabel, variableData.name, true)
+        }
       }
-      const newDescription = potentiallyAddDeprecated(variableData.description)
-      if (newDescription) {
-        uc.updateVariable({
-          id: variableData.id,
-          description: newDescription,
-        })
-        uc.addDeprecationStat(collectionLabel, variableData.name, true)
-      }
-    }
 
-    // Remove deprecation tags from variables that are in both collections
-    for (const key of sets.inBoth) {
-      const variableData = uc.figmaTokens[collectionLabel].variables.find(
-        (v) => v.name === key,
-      )
-      if (!variableData) {
-        throw new Error(
-          `When removing deprecation tags, the variable ${key} could not be found in the Figma tokens`,
+      // Remove deprecation tags from variables that are in both collections
+      for (const key of sets.inBoth) {
+        const variableData = uc.figmaTokens[collectionLabel].variables.find(
+          (v) => v.name === key,
         )
-      }
-      const newDescription = potentiallyRemoveDeprecated(
-        variableData.description,
-      )
-      if (newDescription) {
-        uc.updateVariable({
-          id: variableData.id,
-          description: newDescription,
-        })
-        uc.addDeprecationStat(collectionLabel, variableData.name, false)
+        if (!variableData) {
+          throw new Error(
+            `When removing deprecation tags, the variable ${key} could not be found in the Figma tokens`,
+          )
+        }
+        const newDescription = potentiallyRemoveDeprecated(
+          variableData.description,
+        )
+        if (newDescription) {
+          uc.updateVariable({
+            id: variableData.id,
+            description: newDescription,
+          })
+          uc.addDeprecationStat(collectionLabel, variableData.name, false)
+        }
       }
     }
   }

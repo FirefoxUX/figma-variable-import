@@ -1,15 +1,25 @@
-name: 'Run all jobs (dry run)'
+name: '[Scheduled] Run all jobs'
 
 on:
   schedule:
     - cron: '0 16 * * 2' # Every Tuesday at 4 PM UTC
   workflow_dispatch: # Allows manual trigger
+    inputs:
+      onlyRun:
+        type: choice
+        description: Which job to run
+        default: 'ALL'
+        options:
+          - ALL
+          - DESKTOP_STYLES
+          - FX_COLORS
+          - ANDROID_M3_MODES
 
 jobs:
   checks:
     runs-on: 'ubuntu-latest'
     environment: 'Actions'
-    name: 'Run all jobs'
+    name: 'Run figma variable script'
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -24,7 +34,10 @@ jobs:
         with:
           FIGMA_URL_DESKTOP_STYLES: ${{ secrets.FIGMA_URL_DESKTOP_STYLES }}
           FIGMA_URL_FIREFOX_COLORS: ${{ secrets.FIGMA_URL_FIREFOX_COLORS }}
+          FIGMA_URL_ANDROID_COMPONENTS: ${{ secrets.FIGMA_URL_ANDROID_COMPONENTS }}
+          FIGMA_URL_MOBILE_STYLES: ${{ secrets.FIGMA_URL_MOBILE_STYLES }}
           FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
           SLACK_WEBHOOK_SUCCESS: ${{ secrets.SLACK_WEBHOOK_SUCCESS }}
           SLACK_WEBHOOK_FAILURE: ${{ secrets.SLACK_WEBHOOK_FAILURE }}
+          ONLY_RUN_JOBS: '${{ github.event.inputs.onlyRun }}'
           DRY_RUN: 'true'

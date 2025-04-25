@@ -1,11 +1,11 @@
-name: 'Central tokens to desktop styles'
+name: 'Update Android M3 modes'
 
 on:
   workflow_dispatch:
     inputs:
       figmaUrl:
         type: 'string'
-        description: '"Desktop Styles" branch or file URL'
+        description: '"Android Components" branch or file URL'
         required: true
       dryRun:
         type: 'boolean'
@@ -26,11 +26,12 @@ jobs:
           repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Install dependencies
         run: npm ci --production
-      - name: 'Run DESKTOP_STYLES job'
+      - name: 'Run ANDROID_M3_MODES job'
         uses: './dist'
         with:
-          FIGMA_URL_DESKTOP_STYLES: '${{ github.event.inputs.figmaUrl }}'
+          FIGMA_URL_ANDROID_COMPONENTS: '${{ github.event.inputs.figmaUrl }}'
+          FIGMA_URL_MOBILE_STYLES: '${{ secrets.FIGMA_URL_MOBILE_STYLES }}'
           FIGMA_ACCESS_TOKEN: '${{ secrets.FIGMA_ACCESS_TOKEN }}'
           SLACK_WEBHOOK_FAILURE: '${{ secrets.SLACK_WEBHOOK_FAILURE }}'
-          ONLY_RUN_JOBS: 'DESKTOP_STYLES'
+          ONLY_RUN_JOBS: 'ANDROID_M3_MODES'
           DRY_RUN: '${{ github.event.inputs.dryRun }}'
