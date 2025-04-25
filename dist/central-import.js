@@ -23,7 +23,7 @@ async function downloadFromCentral() {
         return rawCentralTokens;
     }
     catch (error) {
-        throw new Error(`Central Import: When downloading from central, the download failed: ${error}`);
+        throw new Error(`Central Import: When downloading from central, the download failed: ${error?.toString()}`);
     }
 }
 function normalizeNames(rawCentralTokens) {
@@ -72,7 +72,7 @@ function replaceTextColor(tokens) {
         }
         return value;
     };
-    for (const [collectionName, collection] of Object.entries(tokens)) {
+    for (const collection of Object.values(tokens)) {
         for (const [tokenName, token] of Object.entries(collection)) {
             if ('Value' in token) {
                 const primitiveToken = token;
@@ -101,8 +101,10 @@ function filterRelativeUnits(tokens) {
     do {
         newlyAdded = 0;
         for (const [collectionName, collection] of Object.entries(tokens)) {
-            for (const [tokenName, token] of Object.entries(collection)) {
-                const isRelative = (value, tokenName) => {
+            for (const entry of Object.entries(collection)) {
+                const tokenName = entry[0];
+                const token = entry[1];
+                const isRelative = (value) => {
                     const extracted = extractAliasParts(value);
                     if (extracted) {
                         return relativeTokens[extracted.variable] !== undefined;
@@ -115,7 +117,7 @@ function filterRelativeUnits(tokens) {
                     return false;
                 };
                 if ('Value' in token && typeof token.Value === 'string') {
-                    const isRel = isRelative(token.Value, tokenName);
+                    const isRel = isRelative(token.Value);
                     if (isRel) {
                         newlyAdded++;
                         delete tokens[collectionName][tokenName];
@@ -124,11 +126,10 @@ function filterRelativeUnits(tokens) {
                 }
                 else if ('Light' in token) {
                     const themeToken = token;
-                    let relModes = 0;
                     for (const mode of ['Light', 'Dark', 'HCM']) {
                         const value = themeToken[mode];
                         if (typeof value === 'string') {
-                            const isRel = isRelative(value, tokenName);
+                            const isRel = isRelative(value);
                             if (isRel) {
                                 throw new Error(`Central Import: When filtering relative units, the token ${tokenName} is a theme token and is relative. Which is not expected.`);
                             }

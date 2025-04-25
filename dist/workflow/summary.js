@@ -38,8 +38,11 @@ class Summary {
     async write(options) {
         const overwrite = !!options?.overwrite;
         const filePath = await this.filePath();
+        if (this._buffer.trim().length === 0) {
+            return this.emptyBuffer();
+        }
         if (!filePath) {
-            console.info(`~~~ SUMMARY ~~~${EOL}${this._buffer}${EOL}~~~ END SUMMARY ~~~`);
+            console.info(`${this._buffer}${EOL}`);
             return this.emptyBuffer();
         }
         const writeFunc = overwrite ? writeFile : appendFile;

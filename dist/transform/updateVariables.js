@@ -1,8 +1,8 @@
 import { isFigmaAlias, culoriToFigma, figmaToCulori, SYMBOL_RESOLVED_TYPE, isCentralAlias, compareColors, } from '../utils.js';
 import { customParse, rgb } from '../color.js';
-export function updateVariables(uc) {
-    for (const collectionName in uc.centralTokens) {
-        for (const [variableName, centralValues] of Object.entries(uc.centralTokens[collectionName])) {
+export function updateVariables(uc, tokens) {
+    for (const collectionName in tokens) {
+        for (const [variableName, centralValues] of Object.entries(tokens[collectionName])) {
             for (const [modeName, centralValue] of Object.entries(centralValues)) {
                 const figmaVariableData = getFigmaVariableData(uc, collectionName, modeName, variableName);
                 const requiresUpdate = checkIfUpdateRequired(figmaVariableData, centralValue, uc, centralValues);

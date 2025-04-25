@@ -2,9 +2,12 @@ name: 'Central>Figma Variable Import'
 description: 'Imports variables from Mozilla central to Figma'
 
 inputs:
-  FIGMA_URL:
-    description: 'URL of the file to import and update variables'
-    required: true
+  FIGMA_URL_DESKTOP_STYLES:
+    description: 'URL of the Figma file for desktop styles'
+  FIGMA_URL_FIREFOX_COLORS:
+    description: 'URL of the Figma file for Firefox colors'
+  FIGMA_URL_ANDROID_COMPONENTS:
+    description: 'URL of the Figma file for Android components'
   FIGMA_ACCESS_TOKEN:
     description: 'Access token to authenticate with Figma'
     required: true
@@ -12,6 +15,8 @@ inputs:
     description: 'Webhook URL of a Slack workflow to notify on success'
   SLACK_WEBHOOK_FAILURE:
     description: 'Webhook URL of a Slack workflow to notify on failure'
+  ONLY_RUN_JOBS:
+    description: 'Comma-separated list of jobs to run. If not set, all jobs will be run'
   DRY_RUN:
     description: 'Whether to run the action without making changes'
     default: 'true'

@@ -2,6 +2,12 @@ import { parse, formatHex8, formatHex, converter, } from 'culori';
 const rgb = converter('rgb');
 export { formatHex8, formatHex, rgb };
 export const customParse = (...args) => {
+    if (args.length === 1 && typeof args[0] === 'object') {
+        const color = args[0];
+        if ('mode' in color) {
+            return color;
+        }
+    }
     const result = parse(...args);
     if (result?.mode === 'oklch') {
         const srgb = oklchToSrgb(result);
@@ -24,8 +30,8 @@ function transformVector3D(matrix, vector) {
     ];
 }
 const OKLAB_TO_LMS = [
-    [0.9999999984505198, 1.0000000088817608, 1.000000054672411],
-    [0.39633779217376786, -0.10556134232365635, -0.08948418209496576],
+    [0.9999999984505198, 1.0000000088817609, 1.000000054672411],
+    [0.39633779217376786, -0.10556134232365635, -0.08948418209496577],
     [0.2158037580607588, -0.0638541747717059, -1.2914855378640917],
 ];
 const LMS_TO_XYZ = [

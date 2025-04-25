@@ -2,20 +2,39 @@ import { readFileSync } from 'fs';
 import YAML from 'yaml';
 const FIGMA_URL_REGEX = /https:\/\/[\w.-]+\.?figma.com\/([\w-]+)\/([0-9a-zA-Z]{22,128})(?:\/([\w-]+)\/([0-9a-zA-Z]{22,128}))?(?:\/.*)?$/;
 class Config {
-    figmaFileId;
+    figmaIdDesktopStyles;
+    figmaIdFirefoxColors;
+    figmaIdAndroidComponents;
+    figmaIdMobileStyles;
     centralCurrentColorAlias;
     centralSource;
     figmaOnlyVariables;
     figmaAccessToken;
     slackWebhookUrlSuccess;
     slackWebhookUrlFailure;
+    onlyRunJobs;
     dryRun;
+    android;
+    get(name) {
+        const value = this[name];
+        if (value === undefined || value === null) {
+            throw new Error(`Error loading config item: ${name} is not defined`);
+        }
+        return value;
+    }
     constructor() {
         const config = YAML.parse(readFileSync('./config/config.yaml', 'utf8'));
         if (!config.env) {
             config.env = {};
         }
-        this.figmaFileId = this.parseFigmaUrl(config.env.FIGMA_URL || process.env.INPUT_FIGMA_URL);
+        this.figmaIdDesktopStyles = this.parseFigmaUrl('FIGMA_URL_DESKTOP_STYLES', config.env.FIGMA_URL_DESKTOP_STYLES ||
+            process.env.INPUT_FIGMA_URL_DESKTOP_STYLES);
+        this.figmaIdFirefoxColors = this.parseFigmaUrl('FIGMA_URL_FIREFOX_COLORS', config.env.FIGMA_URL_FIREFOX_COLORS ||
+            process.env.INPUT_FIGMA_URL_FIREFOX_COLORS);
+        this.figmaIdAndroidComponents = this.parseFigmaUrl('FIGMA_URL_ANDROID_COMPONENTS', config.env.FIGMA_URL_ANDROID_COMPONENTS ||
+            process.env.INPUT_FIGMA_URL_ANDROID_COMPONENTS);
+        this.figmaIdMobileStyles = this.parseFigmaUrl('FIGMA_URL_MOBILE_STYLES', config.env.FIGMA_URL_MOBILE_STYLES ||
+            process.env.INPUT_FIGMA_URL_MOBILE_STYLES);
         this.centralCurrentColorAlias = config.centralCurrentColorAlias;
         this.centralSource = config.centralSource;
         this.figmaOnlyVariables = config.figmaOnlyVariables;
@@ -31,18 +50,28 @@ class Config {
             config.env.DRY_RUN === 'true' ||
                 process.env.INPUT_DRY_RUN === 'true' ||
                 false;
+        const onlyRunJobsValue = config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS;
+        if (onlyRunJobsValue && onlyRunJobsValue.toLowerCase() !== 'all') {
+            const array = onlyRunJobsValue
+                .split(',')
+                .map((job) => job.trim())
+                .filter((job) => job !== '');
+            this.onlyRunJobs = array.length > 0 ? array : undefined;
+        }
+        this.android = config.android;
+        this.validateAndroidConfig();
         this.testConfig();
     }
-    parseFigmaUrl(figmaURL) {
+    parseFigmaUrl(name, figmaURL) {
         if (!figmaURL || figmaURL === '') {
-            throw new Error('Error loading config: FIGMA_URL is undefined');
+            return undefined;
         }
         const match = figmaURL.match(FIGMA_URL_REGEX);
         if (!match) {
-            throw new Error('Error loading config: FIGMA_URL is not a valid Figma URL');
+            throw new Error(`Error loading config: ${name} is not a valid Figma URL`);
         }
         if (match[1] !== 'design') {
-            throw new Error(`Error loading config: FIGMA_URL is not a design URL, it is ${match[1]}`);
+            throw new Error(`Error loading config: ${name} is not a design URL, it is ${match[1]}`);
         }
         if (match[3] && match[4] && match[3] === 'branch') {
             return match[4];
@@ -51,8 +80,32 @@ class Config {
             return match[2];
         }
     }
+    validateAndroidConfig() {
+        const androidConfig = this.android;
+        if (!androidConfig) {
+            throw new Error('Error loading config: android config is undefined');
+        }
+        const requiredFields = [
+            'themeCollectionName',
+            'themeCollectionReferenceMode',
+            'opacityVariablePrefix',
+            'variablePrefix',
+            'variablePrefixAlt',
+        ];
+        for (const field of requiredFields) {
+            if (!androidConfig[field] ||
+                androidConfig[field] === '') {
+                throw new Error(`Error loading config: android.${field} is not defined or empty`);
+            }
+        }
+    }
     testConfig() {
-        if (this.figmaFileId === undefined || this.figmaFileId === '') {
+        if (this.figmaIdDesktopStyles === undefined ||
+            this.figmaIdDesktopStyles === '') {
+            throw new Error('Error loading config: figmaFileId is undefined');
+        }
+        if (this.figmaIdFirefoxColors === undefined ||
+            this.figmaIdFirefoxColors === '') {
             throw new Error('Error loading config: figmaFileId is undefined');
         }
         if (this.centralCurrentColorAlias === undefined) {

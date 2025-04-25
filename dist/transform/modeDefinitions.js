@@ -1,11 +1,12 @@
-export function addModesDefinitions(uc) {
-    for (const collectionLabel in uc.centralTokens) {
-        if (!uc.figmaTokens[collectionLabel]) {
+export function addModesDefinitions(uc, tokens) {
+    const figmaTokens = uc.getFigmaTokens();
+    for (const collectionLabel in tokens) {
+        if (!figmaTokens[collectionLabel]) {
             throw new Error(`The collection '${collectionLabel}' is missing in the figma file. Please add it to the figma file before running the script again.
-Figma collections: ${Object.keys(uc.figmaTokens).join(', ')}
-Central collections: ${Object.keys(uc.centralTokens).join(', ')}`);
+Figma collections: ${Object.keys(figmaTokens).join(', ')}
+Central collections: ${Object.keys(tokens).join(', ')}`);
         }
-        const { onlyInCentral } = generateModeSets(uc.centralTokens[collectionLabel], uc.figmaTokens[collectionLabel]);
+        const { onlyInCentral } = generateModeSets(tokens[collectionLabel], figmaTokens[collectionLabel]);
         for (const key of onlyInCentral) {
             uc.createVariableMode(key, collectionLabel);
         }

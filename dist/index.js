@@ -1,48 +1,49 @@
 import Config from './Config.js';
-import { getCentralCollectionValues } from './central-import.js';
-import { fetchFigmaAPI, FigmaAPIURLs } from './utils.js';
-import { HCM_MAP } from './imports.js';
-import UpdateConstructor from './UpdateConstructor.js';
-import { addModesDefinitions } from './transform/modeDefinitions.js';
-import { updateVariableDefinitions } from './transform/variableDefinitions.js';
-import { updateVariables } from './transform/updateVariables.js';
-import { documentError, documentStats } from './workflow/index.js';
-import { constructRelativeData } from './relative-transform.js';
+import WorkflowLogger from './workflow/index.js';
+import jobs from './jobs.js';
+import { getMemoStats } from './utils.js';
 async function run() {
-    const { meta: figmaData } = await fetchFigmaAPI(FigmaAPIURLs.getVariables(Config.figmaFileId));
-    const centralData = await getCentralCollectionValues();
-    const relativeData = constructRelativeData(centralData.relative);
-    const centralTokens = {
-        'HCM Theme': HCM_MAP,
-        ...centralData.central,
-        ...relativeData,
-    };
-    const figmaTokens = normalizeFigmaTokens(figmaData);
-    const uc = new UpdateConstructor(centralTokens, figmaTokens);
-    addModesDefinitions(uc);
-    updateVariableDefinitions(uc);
-    updateVariables(uc);
-    if (!Config.dryRun) {
-        await uc.submitChanges(Config.figmaFileId);
-    }
-    documentStats(uc.getStats(), uc.figmaTokens);
+    const availableJobs = Config.onlyRunJobs === undefined
+        ? jobs
+        : jobs.filter((job) => Config.onlyRunJobs?.includes(job.id));
+    const jobPromises = availableJobs.map(async (job) => {
+        try {
+            console.info(`Starting job: ${job.name}`);
+            const uc = await job.action();
+            WorkflowLogger.documentJob({
+                jobId: job.id,
+                jobName: job.name,
+                stats: uc.getStats(),
+                figCollections: uc.getFigmaTokens(),
+            });
+            console.info(`Job completed: ${job.name}`);
+        }
+        catch (error) {
+            console.error(`Error in job ${job.name}:`, error);
+            WorkflowLogger.documentJob({
+                jobId: job.id,
+                jobName: job.name,
+                error: error,
+            });
+        }
+    });
+    await Promise.all(jobPromises);
+    await WorkflowLogger.finalize();
 }
-run().catch((error) => {
-    documentError(error).then(() => {
+run()
+    .catch(async (error) => {
+    WorkflowLogger.documentJob({
+        jobId: 'ROOT',
+        jobName: 'Runtime',
+        error: error,
+    });
+    await WorkflowLogger.finalize().then(() => {
         throw error;
     });
+})
+    .finally(() => {
+    const memoStats = getMemoStats();
+    if (memoStats.length > 0) {
+        console.info('Memoization stats:', memoStats);
+    }
 });
-function normalizeFigmaTokens(figmaData) {
-    return Object.keys(figmaData.variableCollections).reduce((acc, key) => {
-        const collection = figmaData.variableCollections[key];
-        if (!collection) {
-            throw new Error(`When normalizing Figma tokens, the collection '${key}' was not found`);
-        }
-        const variables = Object.values(figmaData.variables).filter((v) => v.variableCollectionId === collection.id);
-        acc[collection.name] = {
-            collection,
-            variables,
-        };
-        return acc;
-    }, {});
-}
