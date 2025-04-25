@@ -44,7 +44,7 @@ export default [
     },
     {
         id: 'ANDROID_M3_MODES',
-        name: 'Create Android M3 modes',
+        name: 'Update Android M3 modes',
         action: async () => {
             const figmaAndroidTokens = await memoGetFigmaTokensFromFile(FigmaAPIURLs.getLocalVariables(Config.get('figmaIdAndroidComponents')));
             const figmaMobileColors = await memoGetFigmaTokensFromFile(FigmaAPIURLs.getLocalVariables(Config.get('figmaIdMobileStyles')));

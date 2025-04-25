@@ -82,7 +82,7 @@ export default [
 
   {
     id: 'ANDROID_M3_MODES',
-    name: 'Create Android M3 modes',
+    name: 'Update Android M3 modes',
     action: async () => {
       // Get the Figma tokens from the file
       const figmaAndroidTokens = await memoGetFigmaTokensFromFile(

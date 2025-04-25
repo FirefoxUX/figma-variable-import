@@ -24,8 +24,8 @@ type VariableValueErrorParams = {
 }
 
 export function getAndroidModes(
-  figmaMobileColors: FigmaCollections,
   figmaAndroidTokens: FigmaCollections,
+  figmaMobileColors: FigmaCollections,
 ): CentralCollections {
   const resolveColor = getResolveColor(figmaMobileColors)
 

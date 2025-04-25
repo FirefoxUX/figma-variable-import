@@ -363,10 +363,6 @@ class UpdateConstructor {
     if (this.fileVariables[collection]) {
       const figmaVariable = this.fileVariables[collection][variable]
       if (figmaVariable && 'id' in figmaVariable) {
-        console.log(
-          `Resolved alias ${centralAlias} to ${figmaVariable.name} with id ${figmaVariable.id}`,
-          figmaVariable,
-        )
         return {
           ...figmaVariable,
           id: figmaVariable.subscribed_id,

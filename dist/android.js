@@ -1,6 +1,6 @@
 import { memoize, isFigmaAlias, figmaToCulori } from './utils.js';
 import Config from './Config.js';
-export function getAndroidModes(figmaMobileColors, figmaAndroidTokens) {
+export function getAndroidModes(figmaAndroidTokens, figmaMobileColors) {
     const resolveColor = getResolveColor(figmaMobileColors);
     const themeCollectionName = Config.android.themeCollectionName;
     const [nonOpacityVariables, opacityVariables] = figmaAndroidTokens[themeCollectionName].variables.reduce((acc, variable) => {
