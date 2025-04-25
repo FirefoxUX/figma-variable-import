@@ -1,13 +1,19 @@
 import { RGBA, VariableAlias, VariableCreate } from '@figma/rest-api-spec'
-import { TypedCentralCollections } from './types.js'
+import {
+  FigmaResponseWrapper,
+  FigmaResultCollection,
+  TypedCentralCollections,
+} from './types.js'
 import Config from './Config.js'
 import { Color, customParse, formatHex8, type Rgb } from './color.js'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
 
 export const FigmaAPIURLs = {
-  getVariables: (fileId: string) =>
+  getLocalVariables: (fileId: string) =>
     `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
+  getPublishedVariables: (fileId: string) =>
+    `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/published`,
   postVariables: (fileId: string) =>
     `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables`,
 }
@@ -28,7 +34,7 @@ export async function fetchFigmaAPI<T>(
 
   try {
     const response = await fetch(url, finalOptions)
-    const data = await response.json()
+    const data = (await response.json()) as FigmaResponseWrapper<T>
     if (data.error === true) {
       throw new Error(
         `When fetching Figma API, an error occurred: ${data.message}`,
@@ -52,7 +58,7 @@ export function isFigmaAlias(
   return value !== undefined && typeof value === 'object' && 'type' in value
 }
 
-// Figm expects values between 0 and 1
+// Figma expects values between 0 and 1
 export function culoriToFigma(rgba: Rgb): RGBA {
   return {
     r: rgba.r,
@@ -116,7 +122,9 @@ export function determineResolvedType(
     return 'STRING'
   }
   // if none of the above, throw an error
-  throw new Error(`Could not determine type for value: ${value}`)
+  throw new Error(
+    `Could not determine type for value: ${JSON.stringify(value)}`,
+  )
 }
 
 const ALIAS_REGEX = /{([^$]+)\$([^}]+)}/
@@ -143,6 +151,7 @@ export function extractAliasParts(
 export function determineResolvedTypeWithAlias(
   collections: TypedCentralCollections,
   value: string | number | boolean,
+  fileVariables?: FigmaResultCollection,
 ): VariableCreate['resolvedType'] | null {
   const resolvedType = determineResolvedType(value)
   if (resolvedType !== 'STRING') return resolvedType
@@ -153,6 +162,15 @@ export function determineResolvedTypeWithAlias(
     if (collections[collection]?.[variable]) {
       return collections[collection][variable][SYMBOL_RESOLVED_TYPE]
     }
+    if (fileVariables && fileVariables[collection]) {
+      const variableData = fileVariables[collection][variable]
+      if (variableData && 'id' in variableData) {
+        const type = variableData.resolvedDataType
+        if (type) {
+          return type
+        }
+      }
+    }
     return null
   }
 
@@ -162,4 +180,111 @@ export function determineResolvedTypeWithAlias(
 export function roundTo(value: number, decimals: number = 2): number {
   const factor = Math.pow(10, decimals)
   return Math.round((value + Number.EPSILON) * factor) / factor
+}
+
+const RECORD_STATS = false
+const memoStats = new Map<string, { hits: number; misses: number }>()
+function recordMemoStat(name: string, hit: boolean) {
+  if (!memoStats.has(name)) {
+    memoStats.set(name, { hits: 0, misses: 0 })
+  }
+  const stats = memoStats.get(name)!
+  if (hit) {
+    stats.hits++
+  } else {
+    stats.misses++
+  }
+}
+export function getMemoStats() {
+  return Array.from(memoStats.entries()).map(([name, { hits, misses }]) => ({
+    name,
+    hits,
+    misses,
+  }))
+}
+
+/**
+ * A utility function to memoize the results of a given function. This helps to cache
+ * the results of expensive function calls and return the cached result when the same
+ * inputs occur again.
+ *
+ * @template T - The type of the function to be memoized.
+ * @param fn - The function to be memoized. It must be a pure function to ensure
+ * consistent results for the same inputs.
+ * @param givenName - An optional name for the memoized function. If not provided,
+ * the function's name or a name derived from the stack trace will be used.
+ * @returns A memoized version of the input function `fn`.
+ *
+ * @throws {Error} If the serialized key for the arguments exceeds 1000 characters.
+ * This is to prevent excessive memory usage or performance degradation.
+ *
+ * @remarks
+ * - The function uses a `Map` to store cached results, with the serialized arguments
+ * as the key.
+ * - If the function returns a `Promise`, the memoized version will cache the pending
+ * promise and update the cache once the promise resolves.
+ * - If the result is an object or array, the same reference will be returned! Make
+ * sure to use immutable data structures or deep clone the result if you want to
+ * avoid side effects.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function memoize<T extends (...args: any[]) => any>(
+  fn: T,
+  givenName?: string,
+): T {
+  const cache = new Map<string, ReturnType<T> | Promise<ReturnType<T>>>()
+
+  const fnName = givenName || fn.name || getNameFromStackTrace(new Error())
+
+  const memoizedFn: (...args: Parameters<T>) => ReturnType<T> = (
+    ...args: Parameters<T>
+  ): ReturnType<T> => {
+    const key = JSON.stringify(args)
+
+    // throw an error if the key is too long
+    if (key.length > 1000) {
+      throw new Error(
+        `Memoization arguments are too large. Key length: ${key.length}. Max length: 1000. Try to use toJSON on complex objects.`,
+      )
+    }
+
+    if (cache.has(key)) {
+      if (RECORD_STATS) {
+        recordMemoStat(fnName, true)
+      }
+      const cachedValue = cache.get(key)!
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return cachedValue as ReturnType<T>
+    }
+    if (RECORD_STATS) {
+      recordMemoStat(fnName, false)
+    }
+    const result = fn(...args) as ReturnType<T> | Promise<ReturnType<T>>
+    if (result instanceof Promise) {
+      // Store the pending promise and update cache once resolved
+      const promise = result.then((res) => {
+        cache.set(key, res)
+        return res
+      })
+      cache.set(key, promise)
+      // Prevent multiple calls while waiting
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return promise as ReturnType<T>
+    } else {
+      cache.set(key, result)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return result
+    }
+  }
+
+  return memoizedFn as T
+}
+
+function getNameFromStackTrace(error: Error): string {
+  const stack = error.stack
+  if (!stack) return 'Unknown function'
+
+  const lines = stack.split('\n')
+  const match = lines[1].match(/at (\w+)/)
+  return match ? match[1] : 'Unknown function'
 }

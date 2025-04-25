@@ -146,11 +146,13 @@ class Summary {
     const overwrite = !!options?.overwrite
     const filePath = await this.filePath()
 
+    if (this._buffer.trim().length === 0) {
+      return this.emptyBuffer()
+    }
+
     // if there is no file path, print to console
     if (!filePath) {
-      console.info(
-        `~~~ SUMMARY ~~~${EOL}${this._buffer}${EOL}~~~ END SUMMARY ~~~`,
-      )
+      console.info(`${this._buffer}${EOL}`)
       return this.emptyBuffer()
     }
 

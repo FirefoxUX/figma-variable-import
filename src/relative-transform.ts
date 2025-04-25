@@ -145,6 +145,11 @@ function processRelativeValues(
           if (key === 'id') {
             return acc
           }
+          if (typeof value !== 'number') {
+            throw new Error(
+              `When parsing relative values, the value for ${key} is not a number`,
+            )
+          }
           acc[key] = Math.round(value * relativeValue)
           return acc
         },
@@ -183,7 +188,7 @@ function normalizeRelativeValues(
       let parsedValue = 0
       try {
         parsedValue = parseFloat(value.Value)
-      } catch (error) {
+      } catch (_error) {
         throw new Error(
           `When parsing relative values, the value for ${key} is not a valid number`,
         )

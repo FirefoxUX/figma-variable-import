@@ -1,18 +1,22 @@
-name: 'Variable Import Check (apply to file)'
+name: 'Import color palette to Firefox Colors'
 
 on:
   workflow_dispatch:
     inputs:
       figmaUrl:
         type: 'string'
-        description: 'URL of the branch to import and update variables'
+        description: '"Firefox Colors" branch or file URL'
         required: true
+      dryRun:
+        type: 'boolean'
+        description: 'Do not apply changes'
+        default: false
 
 jobs:
   checks:
     runs-on: 'ubuntu-latest'
     environment: 'Actions'
-    name: 'Variable Import Check and Apply'
+    name: 'Run figma variable script'
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v4
@@ -22,10 +26,11 @@ jobs:
           repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Install dependencies
         run: npm ci --production
-      - name: Check for updates and apply them
+      - name: 'Run FX_COLORS job'
         uses: './dist'
         with:
-          FIGMA_URL: '${{ github.event.inputs.figmaUrl }}'
+          FIGMA_URL_FIREFOX_COLORS: '${{ github.event.inputs.figmaUrl }}'
           FIGMA_ACCESS_TOKEN: '${{ secrets.FIGMA_ACCESS_TOKEN }}'
           SLACK_WEBHOOK_FAILURE: '${{ secrets.SLACK_WEBHOOK_FAILURE }}'
-          DRY_RUN: 'false'
+          ONLY_RUN_JOBS: 'FX_COLORS'
+          DRY_RUN: '${{ github.event.inputs.dryRun }}'

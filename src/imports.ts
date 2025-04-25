@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { CentralCollection } from './types.js'
 import { readFileSync } from 'fs'
 import YAML from 'yaml'

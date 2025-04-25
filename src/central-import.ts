@@ -53,9 +53,15 @@ async function downloadFromCentral() {
   // download each json from from the links in Config.centralSource with Promise.all
   try {
     const [colors, primitives, theme] = await Promise.all([
-      fetch(Config.centralSource.colors).then((res) => res.json()),
-      fetch(Config.centralSource.primitives).then((res) => res.json()),
-      fetch(Config.centralSource.theme).then((res) => res.json()),
+      fetch(Config.centralSource.colors).then(
+        (res) => res.json() as unknown as Record<string, RawPrimitiveValue>,
+      ),
+      fetch(Config.centralSource.primitives).then(
+        (res) => res.json() as unknown as Record<string, RawPrimitiveValue>,
+      ),
+      fetch(Config.centralSource.theme).then(
+        (res) => res.json() as unknown as Record<string, RawPrimitiveValue>,
+      ),
     ])
     const rawCentralTokens: RawCentralTokens = {
       colors,
@@ -65,7 +71,7 @@ async function downloadFromCentral() {
     return rawCentralTokens
   } catch (error) {
     throw new Error(
-      `Central Import: When downloading from central, the download failed: ${error}`,
+      `Central Import: When downloading from central, the download failed: ${error?.toString()}`,
     )
   }
 }
@@ -139,7 +145,7 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
   }
 
   // Iterate over the collections in the tokens object
-  for (const [collectionName, collection] of Object.entries(tokens)) {
+  for (const collection of Object.values(tokens)) {
     // Iterate over the tokens in each collection
     for (const [tokenName, token] of Object.entries(collection)) {
       // Check if the token is a primitive token
@@ -184,8 +190,10 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
     newlyAdded = 0
     for (const [collectionName, collection] of Object.entries(tokens)) {
       // Iterate over the tokens in each collection
-      for (const [tokenName, token] of Object.entries(collection)) {
-        const isRelative = (value: string, tokenName: string) => {
+      for (const entry of Object.entries(collection)) {
+        const tokenName = entry[0]
+        const token = entry[1] as PrimitiveTokens | ThemeTokens
+        const isRelative = (value: string) => {
           // first we check if its a reference to another token
           const extracted = extractAliasParts(value)
           if (extracted) {
@@ -205,7 +213,7 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
 
         // first check if we have a primitive token or a theme token
         if ('Value' in token && typeof token.Value === 'string') {
-          const isRel = isRelative(token.Value as string, tokenName)
+          const isRel = isRelative(token.Value)
           if (isRel) {
             // if the token is relative, we can remove it from the original collection
             // and add it to the relativeTokens collection
@@ -216,17 +224,16 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
                 PrimitiveTokens | ThemeTokens
               >
             )[tokenName]
-            relativeTokens[tokenName] = token as PrimitiveTokens
+            relativeTokens[tokenName] = token
           }
         } else if ('Light' in token) {
           // Check if the token is a theme token
-          const themeToken = token as ThemeTokens
+          const themeToken = token
 
-          let relModes = 0
           for (const mode of ['Light', 'Dark', 'HCM'] as const) {
             const value = themeToken[mode]
             if (typeof value === 'string') {
-              const isRel = isRelative(value, tokenName)
+              const isRel = isRelative(value)
               if (isRel) {
                 // throw an error because we're not expecting Theme tokens to be relative
                 throw new Error(

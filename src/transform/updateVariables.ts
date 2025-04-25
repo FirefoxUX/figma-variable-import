@@ -1,4 +1,4 @@
-import { RGBA, VariableAlias } from '@figma/rest-api-spec'
+import { VariableAlias } from '@figma/rest-api-spec'
 import UpdateConstructor from '../UpdateConstructor.js'
 import {
   isFigmaAlias,
@@ -8,18 +8,28 @@ import {
   isCentralAlias,
   compareColors,
 } from '../utils.js'
-import { FigmaVariableData, TypedCentralVariable } from '../types.js'
+
+import {
+  FigmaVariableData,
+  TypedCentralCollections,
+  TypedCentralVariable,
+} from '../types.js'
+
 import { customParse, rgb } from '../color.js'
+
 /**
  * Updates the variable values if central values don't match the Figma values.
  *
  * @param uc - An UpdateConstructor instance.
  */
-export function updateVariables(uc: UpdateConstructor) {
-  for (const collectionName in uc.centralTokens) {
+export function updateVariables(
+  uc: UpdateConstructor,
+  tokens: TypedCentralCollections,
+) {
+  for (const collectionName in tokens) {
     // iterate over all values in the current collection
     for (const [variableName, centralValues] of Object.entries(
-      uc.centralTokens[collectionName],
+      tokens[collectionName],
     )) {
       // iterate over keys in centralValues
       for (const [modeName, centralValue] of Object.entries(centralValues)) {
@@ -138,7 +148,7 @@ function checkIfUpdateRequired(
         requiresUpdate = true
       } else {
         const centralParsed = customParse(centralValue as string)!
-        const figmaParsed = figmaToCulori(figmaVariableData.value as RGBA)
+        const figmaParsed = figmaToCulori(figmaVariableData.value)
         if (
           figmaParsed === undefined ||
           !compareColors(centralParsed, figmaParsed)

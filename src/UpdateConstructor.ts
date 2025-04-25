@@ -12,17 +12,15 @@ import {
 import {
   CentralCollections,
   FigmaCollections,
+  FigmaResultCollection,
   FigmaVariableValue,
-  TypedCentralCollections,
-  TypedCentralVariable,
 } from './types.js'
-import {
-  FigmaAPIURLs,
-  SYMBOL_RESOLVED_TYPE,
-  determineResolvedTypeWithAlias,
-  extractAliasParts,
-  fetchFigmaAPI,
-} from './utils.js'
+import { FigmaAPIURLs, extractAliasParts, fetchFigmaAPI } from './utils.js'
+import { addModesDefinitions } from './transform/modeDefinitions.js'
+import { updateVariableDefinitions } from './transform/variableDefinitions.js'
+import { updateVariables } from './transform/updateVariables.js'
+import { inferResolvedTypes } from './inferResolvedTypes.js'
+import { inspect } from 'util'
 
 export type ExtraStats = {
   variablesDeprecated: { collection: string; variable: string }[]
@@ -41,27 +39,29 @@ export type ExtraStats = {
     newValue: FigmaVariableValue
     resolvedType: VariableCreate['resolvedType']
   }[]
+  emptyChangeset: boolean
   result?: PostVariablesResponse | ErrorResponsePayloadWithErrorBoolean | string
 }
-
-import { inspect } from 'util'
 
 /**
  * This class is used to keep track of changes that need to be submitted to the Figma API.
  */
 class UpdateConstructor {
+  private readonly fileId: string
+  private readonly fileVariables: FigmaResultCollection
+  private figmaTokens: FigmaCollections
   private idCounter: number
   private changes: Required<PostVariablesRequestBody>
   private extraStats: ExtraStats
-  centralTokens: TypedCentralCollections
-  figmaTokens: FigmaCollections
 
   constructor(
-    centralTokens: CentralCollections,
     figmaTokens: FigmaCollections,
+    fileId: string,
+    fileVariables?: FigmaResultCollection,
   ) {
-    this.centralTokens = inferResolvedTypes(centralTokens)
+    this.fileId = fileId
     this.figmaTokens = figmaTokens
+    this.fileVariables = fileVariables || {}
     this.idCounter = 0
     this.changes = {
       variableCollections: [],
@@ -75,6 +75,7 @@ class UpdateConstructor {
       modesCreated: [],
       variablesCreated: [],
       variableValuesUpdated: [],
+      emptyChangeset: true,
     }
   }
 
@@ -91,16 +92,27 @@ class UpdateConstructor {
     )
   }
 
+  getFigmaTokens(): Readonly<FigmaCollections> {
+    return this.figmaTokens
+  }
+
   getTempId() {
     return `tempId${this.idCounter++}`
   }
 
-  async submitChanges(fileId: string) {
+  async submitChanges(dryRun: boolean) {
     const changes = Object.fromEntries(
       Object.entries(this.changes).filter(([, value]) => value.length > 0),
     )
+    const noChanges = Object.keys(changes).length === 0
+    this.extraStats.emptyChangeset = noChanges
 
-    if (Object.keys(changes).length === 0) {
+    if (dryRun) {
+      console.info('Dry run: No changes to submit')
+      return
+    }
+
+    if (noChanges) {
       console.info('No changes to submit')
       return
     }
@@ -112,7 +124,7 @@ class UpdateConstructor {
 
     try {
       const result = await fetchFigmaAPI<PostVariablesResponse>(
-        FigmaAPIURLs.postVariables(fileId),
+        FigmaAPIURLs.postVariables(this.fileId),
         {
           method: 'POST',
           headers: {
@@ -335,102 +347,54 @@ class UpdateConstructor {
         `When resolving alias '${centralAlias}', the alias could not be parsed`,
       )
     }
-    const variable = this.figmaTokens[aliasParts.collection].variables.find(
-      (v) => v.name === aliasParts.variable,
-    )
-    if (!variable) {
-      throw new Error(
-        `When resolving alias '${centralAlias}', the alias could not be found in the figma tokens`,
+
+    const { collection, variable } = aliasParts
+
+    if (this.figmaTokens[collection]) {
+      const resolvedVariable = this.figmaTokens[collection].variables.find(
+        (v) => v.name === variable,
       )
+
+      if (resolvedVariable) {
+        return resolvedVariable
+      }
     }
-    return variable
+
+    if (this.fileVariables[collection]) {
+      const figmaVariable = this.fileVariables[collection][variable]
+      if (figmaVariable && 'id' in figmaVariable) {
+        console.log(
+          `Resolved alias ${centralAlias} to ${figmaVariable.name} with id ${figmaVariable.id}`,
+          figmaVariable,
+        )
+        return {
+          ...figmaVariable,
+          id: figmaVariable.subscribed_id,
+        } as unknown as LocalVariable
+      }
+    }
+
+    throw new Error(
+      `When resolving alias '${centralAlias}', the alias could not be found in the figma tokens`,
+    )
+  }
+
+  constructUpdate(
+    colorsCollections: CentralCollections,
+    handleDeprecation = false,
+  ) {
+    // Infer the resolved types of the collections
+    const inferredC = inferResolvedTypes(colorsCollections, this.fileVariables)
+
+    // Iterate over collections and add missing modes
+    addModesDefinitions(this, inferredC)
+
+    //Iterate over collections and add missing variables
+    updateVariableDefinitions(this, inferredC, handleDeprecation)
+
+    // STEP 4: Update the values of the variables
+    updateVariables(this, inferredC)
   }
 }
 
 export default UpdateConstructor
-
-// function that converts CentralCollections to TypedCentralCollections
-function inferResolvedTypes(
-  centralTokens: CentralCollections,
-): TypedCentralCollections {
-  const typedCentralTokens: TypedCentralCollections = {}
-  let queue: Array<{ collectionName: string; variableName: string }> = []
-
-  const resolveVariableTypes = (
-    collectionName: string,
-    variableName: string,
-  ) => {
-    const variable = centralTokens[collectionName][variableName]
-    let lastResolvedType: VariableCreate['resolvedType'] | undefined = undefined
-
-    for (const mode in variable) {
-      const value = variable[mode]
-      const resolvedType = determineResolvedTypeWithAlias(
-        typedCentralTokens,
-        value,
-      )
-      if (resolvedType === null) {
-        queue.push({ collectionName, variableName })
-        return
-      }
-      if (lastResolvedType && lastResolvedType !== resolvedType) {
-        throw new Error(
-          `When trying to infer variable types: Variable '${variableName}' in collection '${collectionName}' has conflicting types in different modes (${lastResolvedType} and ${resolvedType})`,
-        )
-      }
-      lastResolvedType = resolvedType
-    }
-
-    if (!lastResolvedType) {
-      throw new Error(
-        `When trying to infer variable types: Variable '${variableName}' in collection '${collectionName}' has no modes`,
-      )
-    }
-
-    const typedVariable: TypedCentralVariable = {
-      ...variable,
-      [SYMBOL_RESOLVED_TYPE]: lastResolvedType,
-    }
-
-    if (!typedCentralTokens[collectionName]) {
-      typedCentralTokens[collectionName] = {}
-    }
-
-    typedCentralTokens[collectionName][variableName] = typedVariable
-  }
-
-  // We go through all the collections
-  for (const collectionName in centralTokens) {
-    const collection = centralTokens[collectionName]
-    for (const variableName in collection) {
-      resolveVariableTypes(collectionName, variableName)
-    }
-  }
-
-  const LOOP_LIMIT = 10
-  let loopCounter = LOOP_LIMIT
-  // There might be some variables that are not resolved yet, so we need to go through the queue
-  // as long as there are variables in the queue and we have not reached the loop limit
-  while (queue.length > 0 && loopCounter > 0) {
-    const queueCopy = [...queue]
-    queue = []
-    for (const { collectionName, variableName } of queueCopy) {
-      resolveVariableTypes(collectionName, variableName)
-    }
-    loopCounter--
-  }
-  if (loopCounter === 0) {
-    throw new Error(
-      `When trying to infer variable types: There are still variables that could not be resolved after ${LOOP_LIMIT} iterations.`,
-    )
-  }
-
-  if (queue.length > 0) {
-    console.warn(`WARNING: ${queue.length} variables had to be resolved in a second pass.
-         This happens when an alias references a variable that is defined later in the central tokens.
-         While this is not a problem, you might be able to optimize the order of the central tokens.
-         If it is not possible to optimize the order anymore, you can remove this warning!`)
-  }
-
-  return typedCentralTokens
-}

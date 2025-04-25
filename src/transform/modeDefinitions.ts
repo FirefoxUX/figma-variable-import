@@ -1,24 +1,31 @@
 import UpdateConstructor from '../UpdateConstructor.js'
-import { FigmaCollection, TypedCentralCollection } from '../types.js'
+import {
+  FigmaCollection,
+  TypedCentralCollection,
+  TypedCentralCollections,
+} from '../types.js'
 
 /**
  * Adds mode definitions to the given `UpdateConstructor` instance.
  *
  * @param uc - The `UpdateConstructor` instance to add mode definitions to.
  */
-export function addModesDefinitions(uc: UpdateConstructor) {
-  for (const collectionLabel in uc.centralTokens) {
+export function addModesDefinitions(
+  uc: UpdateConstructor,
+  tokens: TypedCentralCollections,
+) {
+  for (const collectionLabel in tokens) {
     // Throw an error if the collection is missing in the figma file.
     if (!uc.figmaTokens[collectionLabel]) {
       throw new Error(
         `The collection '${collectionLabel}' is missing in the figma file. Please add it to the figma file before running the script again.
 Figma collections: ${Object.keys(uc.figmaTokens).join(', ')}
-Central collections: ${Object.keys(uc.centralTokens).join(', ')}`,
+Central collections: ${Object.keys(tokens).join(', ')}`,
       )
     }
     // Generate a set of modes only present in the central collection.
     const { onlyInCentral } = generateModeSets(
-      uc.centralTokens[collectionLabel],
+      tokens[collectionLabel],
       uc.figmaTokens[collectionLabel],
     )
     // Create a variable mode for each mode only present in the central collection.

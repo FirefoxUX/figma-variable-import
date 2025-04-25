@@ -13,10 +13,6 @@ centralSource:
   primitives: 'https://hg-edge.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma-primitives.json'
   theme: 'https://hg-edge.mozilla.org/mozilla-central/raw-file/tip/toolkit/themes/shared/design-system/tokens-figma-theme.json'
 
-######################
-# Deprecation config #
-######################
-
 # These are the variables that will not be marked as
 # deprecated, even though they don't exist in central
 figmaOnlyVariables:
@@ -29,14 +25,29 @@ figmaOnlyVariables:
   - 'background/color/backdrop'
   - 'color/accent/primary/deemphasized'
 
+########################
+# Android modes config #
+########################
+
+android:
+  themeCollectionName: 'Color (M3)'
+  themeCollectionReferenceMode: 'Acorn / Default'
+  opacityVariablePrefix: 'State Layers/'
+  variablePrefix: 'In Use/'
+  variablePrefixAlt: 'Not Using (yet)/'
+
 ######################
 # Debugging settings #
 ######################
 
 # You can override ENV variables here for debugging
 # env:
-#   FIGMA_URL: 'https://www.figma.com/design/yl5Z...'
+#   FIGMA_URL_DESKTOP_STYLES: 'https://www.figma.com/design/yl5Z...'
+#   FIGMA_URL_FIREFOX_COLORS: 'https://www.figma.com/design/yl5Z...'
+#   FIGMA_URL_ANDROID_COMPONENTS: 'https://www.figma.com/design/yl5Z...'
+#   FIGMA_URL_MOBILE_STYLES: 'https://www.figma.com/design/yl5Z...'
 #   FIGMA_ACCESS_TOKEN: 'figd_...'
 #   SLACK_WEBHOOK_SUCCESS: 'https://hooks.slack.com/triggers/...'
 #   SLACK_WEBHOOK_FAILURE: 'https://hooks.slack.com/triggers/...'
+#   ONLY_RUN_JOBS: 'DESKTOP_STYLES, FX_COLORS'
 #   DRY_RUN: 'true'
