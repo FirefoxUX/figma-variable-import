@@ -1,6 +1,7 @@
 import Config from './Config.js'
 import WorkflowLogger from './workflow/index.js'
 import jobs from './jobs.js'
+import { getMemoStats } from './utils.js'
 
 async function run() {
   const availableJobs =
@@ -16,7 +17,7 @@ async function run() {
         jobId: job.id,
         jobName: job.name,
         stats: uc.getStats(),
-        figCollections: uc.figmaTokens,
+        figCollections: uc.getFigmaTokens(),
       })
       console.info(`Job completed: ${job.name}`)
     } catch (error) {
@@ -34,13 +35,20 @@ async function run() {
   await WorkflowLogger.finalize()
 }
 
-run().catch(async (error) => {
-  WorkflowLogger.documentJob({
-    jobId: 'ROOT',
-    jobName: 'Runtime',
-    error: error as string | Error,
+run()
+  .catch(async (error) => {
+    WorkflowLogger.documentJob({
+      jobId: 'ROOT',
+      jobName: 'Runtime',
+      error: error as string | Error,
+    })
+    await WorkflowLogger.finalize().then(() => {
+      throw error
+    })
   })
-  await WorkflowLogger.finalize().then(() => {
-    throw error
+  .finally(() => {
+    const memoStats = getMemoStats()
+    if (memoStats.length > 0) {
+      console.info('Memoization stats:', memoStats)
+    }
   })
-})

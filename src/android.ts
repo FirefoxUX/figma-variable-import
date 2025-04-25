@@ -1,5 +1,5 @@
 import { LocalVariable } from '@figma/rest-api-spec'
-import { Color, rgb } from 'culori'
+import { Color, Rgb } from './color.js'
 import {
   FigmaCollections,
   FigmaCollection,
@@ -8,6 +8,7 @@ import {
   CentralVariable,
 } from './types.js'
 import { memoize, isFigmaAlias, figmaToCulori } from './utils.js'
+import Config from './Config.js'
 
 type SearchByCollectionName = { collectionName: string; variableName: string }
 type SearchByVariableId = { variableId: string }
@@ -28,78 +29,120 @@ export function getAndroidModes(
 ): CentralCollections {
   const resolveColor = getResolveColor(figmaMobileColors)
 
-  const themeCollectionName = 'Color (M3)'
+  const themeCollectionName = Config.android.themeCollectionName
 
-  // filter to get only variables whose name starts with "State Layers/"
-  const opacityVariables = figmaAndroidTokens[themeCollectionName].variables
-    .filter((variable) => variable.name.startsWith('State Layers/'))
-    .reduce((acc, variable) => {
-      const path = variable.name.split('/').map((part) => part.trim())
-      const [_, referencedVariableName, opacity] = path
-      // [0] = 'State Layers'
-      // [1] = Name of referenced variable
-      // [2] = 'Opacity-XX'
-      // get the opacity as a number
-      const opacityNumber = parseFloat(opacity.split('-')[1]) / 100
-      if (isNaN(opacityNumber)) {
-        throw new Error(
-          `When parsing opacity variable, the value for ${opacity} is not a number`,
-        )
+  // first we split figmaAndroidTokens[themeCollectionName].variables into two groups
+  // those that start with "State Layers/" and those that don't
+  const [nonOpacityVariables, opacityVariables] = figmaAndroidTokens[
+    themeCollectionName
+  ].variables.reduce(
+    (acc, variable) => {
+      if (variable.name.startsWith(Config.android.opacityVariablePrefix)) {
+        acc[1].push(variable)
+      } else {
+        acc[0].push(variable)
       }
+      return acc
+    },
+    [[], []] as [LocalVariable[], LocalVariable[]],
+  )
 
-      const variableName = `In Use/${referencedVariableName}`
-      const variableNameFallback = `Not Using (yet)/${referencedVariableName}`
-
-      const resolveWithFallback = (
-        mode: 'Light' | 'Dark' | 'Private',
-        name: string,
-        fallback: string,
-      ) => {
-        console.log('\n---------------------------------')
-        console.log('RESOLVE OPACITY VAR', variableName)
-        // first try to resolve the variable
-        let color: Color | undefined = undefined
-        try {
-          color = resolveColor(figmaAndroidTokens, mode, {
-            collectionName: themeCollectionName,
-            variableName: name,
-          })
-        } catch (_e) {
-          color = resolveColor(figmaAndroidTokens, mode, {
-            collectionName: themeCollectionName,
-            variableName: fallback,
-          })
-        }
-        const figmaColor = rgb(color)
-        figmaColor.alpha = opacityNumber * (figmaColor.alpha ?? 1)
-        return figmaColor
-      }
-
+  const updatedNonOpacityVariables = nonOpacityVariables.reduce(
+    (acc, variable) => {
       const updatedVariable: CentralVariable = {
-        'Acorn / Light': resolveWithFallback(
-          'Light',
-          variableName,
-          variableNameFallback,
-        ),
-        'Acorn / Dark': resolveWithFallback(
-          'Dark',
-          variableName,
-          variableNameFallback,
-        ),
-        'Acorn / Private': resolveWithFallback(
-          'Private',
-          variableName,
-          variableNameFallback,
-        ),
+        'Acorn / Light': resolveColor(figmaAndroidTokens, 'Light', {
+          collectionName: themeCollectionName,
+          variableName: variable.name,
+        }),
+
+        'Acorn / Dark': resolveColor(figmaAndroidTokens, 'Dark', {
+          collectionName: themeCollectionName,
+          variableName: variable.name,
+        }),
+
+        'Acorn / Private': resolveColor(figmaAndroidTokens, 'Private', {
+          collectionName: themeCollectionName,
+          variableName: variable.name,
+        }),
       }
 
       acc[variable.name] = updatedVariable
 
       return acc
-    }, {} as CentralCollection)
+    },
+    {} as CentralCollection,
+  )
+
+  // filter to get only variables whose name starts with "State Layers/"
+  const updatedOpacityVariables = opacityVariables.reduce((acc, variable) => {
+    const path = variable.name.split('/').map((part) => part.trim())
+    const [_, referencedVariableName, opacity] = path
+    // [0] = 'State Layers'
+    // [1] = Name of referenced variable
+    // [2] = 'Opacity-XX'
+    // get the opacity as a number
+    const opacityNumber = parseFloat(opacity.split('-')[1]) / 100
+    if (isNaN(opacityNumber)) {
+      throw new Error(
+        `When parsing opacity variable, the value for ${opacity} is not a number`,
+      )
+    }
+
+    const variableName = `${Config.android.variablePrefix}${referencedVariableName}`
+    const variableNameFallback = `${Config.android.variablePrefixAlt}${referencedVariableName}`
+
+    const resolveWithFallback = (
+      mode: 'Light' | 'Dark' | 'Private',
+      name: string,
+      fallback: string,
+    ) => {
+      // first try to resolve the variable
+      let color: Color | undefined = undefined
+      try {
+        color = resolveColor(figmaAndroidTokens, mode, {
+          collectionName: themeCollectionName,
+          variableName: name,
+        })
+      } catch (_e) {
+        color = resolveColor(figmaAndroidTokens, mode, {
+          collectionName: themeCollectionName,
+          variableName: fallback,
+        })
+      }
+      return {
+        ...color,
+        alpha: opacityNumber * (color.alpha ?? 1),
+      }
+    }
+
+    const updatedVariable: CentralVariable = {
+      'Acorn / Light': resolveWithFallback(
+        'Light',
+        variableName,
+        variableNameFallback,
+      ),
+      'Acorn / Dark': resolveWithFallback(
+        'Dark',
+        variableName,
+        variableNameFallback,
+      ),
+      'Acorn / Private': resolveWithFallback(
+        'Private',
+        variableName,
+        variableNameFallback,
+      ),
+    }
+
+    acc[variable.name] = updatedVariable
+
+    return acc
+  }, {} as CentralCollection)
 
   const collection: CentralCollections = {
-    [themeCollectionName]: opacityVariables,
+    [themeCollectionName]: {
+      ...updatedNonOpacityVariables,
+      ...updatedOpacityVariables,
+    },
   }
   return collection
 }
@@ -121,7 +164,7 @@ const getCollection = memoize(
 )
 
 const getModeId = memoize((collection: FigmaCollection, mode: Mode): string => {
-  const modesLookup = ['Acorn / Default', mode]
+  const modesLookup = [Config.android.themeCollectionReferenceMode, mode]
   if (collection.collection.modes.length === 1) {
     return collection.collection.modes[0].modeId
   } else {
@@ -170,9 +213,7 @@ const getVariableValue = (
 
 export const getResolveColor = (fallbackCollections: FigmaCollections) => {
   const resolveColor = memoize(
-    (collections: FigmaCollections, mode: Mode, search: Search): Color => {
-      console.log('>>> resolveColor', mode, search)
-
+    (collections: FigmaCollections, mode: Mode, search: Search): Rgb => {
       const errCollectionName =
         'collectionName' in search
           ? search.collectionName
@@ -186,11 +227,6 @@ export const getResolveColor = (fallbackCollections: FigmaCollections) => {
           `Collection ${errCollectionName} not found while resolving ${errVariableName}`,
         )
       }
-
-      console.log(
-        '    found collection! has modes',
-        collection.collection.modes.length,
-      )
 
       const modeId = getModeId(collection, mode)
 
@@ -214,7 +250,6 @@ export const getResolveColor = (fallbackCollections: FigmaCollections) => {
           })
         } catch (e) {
           if (collections !== fallbackCollections) {
-            console.info('    [!!!] Falling back to figmaMobileColors')
             return resolveColor(fallbackCollections, mode, {
               collectionName: collection.collection.name,
               variableName: variableData.name,
@@ -244,10 +279,6 @@ export const getResolveColor = (fallbackCollections: FigmaCollections) => {
         )
       }
 
-      console.log(
-        `Resolved color for ${errVariableName} in ${mode}`,
-        parsedColor,
-      )
       return parsedColor
     },
     'resolveColor',

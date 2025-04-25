@@ -182,6 +182,7 @@ export function roundTo(value: number, decimals: number = 2): number {
   return Math.round((value + Number.EPSILON) * factor) / factor
 }
 
+const RECORD_STATS = false
 const memoStats = new Map<string, { hits: number; misses: number }>()
 function recordMemoStat(name: string, hit: boolean) {
   if (!memoStats.has(name)) {
@@ -202,6 +203,30 @@ export function getMemoStats() {
   }))
 }
 
+/**
+ * A utility function to memoize the results of a given function. This helps to cache
+ * the results of expensive function calls and return the cached result when the same
+ * inputs occur again.
+ *
+ * @template T - The type of the function to be memoized.
+ * @param fn - The function to be memoized. It must be a pure function to ensure
+ * consistent results for the same inputs.
+ * @param givenName - An optional name for the memoized function. If not provided,
+ * the function's name or a name derived from the stack trace will be used.
+ * @returns A memoized version of the input function `fn`.
+ *
+ * @throws {Error} If the serialized key for the arguments exceeds 1000 characters.
+ * This is to prevent excessive memory usage or performance degradation.
+ *
+ * @remarks
+ * - The function uses a `Map` to store cached results, with the serialized arguments
+ * as the key.
+ * - If the function returns a `Promise`, the memoized version will cache the pending
+ * promise and update the cache once the promise resolves.
+ * - If the result is an object or array, the same reference will be returned! Make
+ * sure to use immutable data structures or deep clone the result if you want to
+ * avoid side effects.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function memoize<T extends (...args: any[]) => any>(
   fn: T,
@@ -224,13 +249,16 @@ export function memoize<T extends (...args: any[]) => any>(
     }
 
     if (cache.has(key)) {
-      recordMemoStat(fnName, true)
+      if (RECORD_STATS) {
+        recordMemoStat(fnName, true)
+      }
       const cachedValue = cache.get(key)!
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return cachedValue as ReturnType<T>
     }
-    recordMemoStat(fnName, false)
-
+    if (RECORD_STATS) {
+      recordMemoStat(fnName, false)
+    }
     const result = fn(...args) as ReturnType<T> | Promise<ReturnType<T>>
     if (result instanceof Promise) {
       // Store the pending promise and update cache once resolved
@@ -238,8 +266,8 @@ export function memoize<T extends (...args: any[]) => any>(
         cache.set(key, res)
         return res
       })
-      // Prevent multiple calls while waiting
       cache.set(key, promise)
+      // Prevent multiple calls while waiting
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return promise as ReturnType<T>
     } else {

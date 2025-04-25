@@ -47,12 +47,12 @@ export type ExtraStats = {
  * This class is used to keep track of changes that need to be submitted to the Figma API.
  */
 class UpdateConstructor {
+  private readonly fileId: string
+  private readonly fileVariables: FigmaResultCollection
+  private figmaTokens: FigmaCollections
   private idCounter: number
   private changes: Required<PostVariablesRequestBody>
   private extraStats: ExtraStats
-  private fileId: string
-  figmaTokens: FigmaCollections
-  fileVariables: FigmaResultCollection
 
   constructor(
     figmaTokens: FigmaCollections,
@@ -90,6 +90,10 @@ class UpdateConstructor {
     return Object.keys(this.changes).some(
       (key) => this.changes[key as keyof typeof this.changes].length > 0,
     )
+  }
+
+  getFigmaTokens(): Readonly<FigmaCollections> {
+    return this.figmaTokens
   }
 
   getTempId() {

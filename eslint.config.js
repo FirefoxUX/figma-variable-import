@@ -28,7 +28,7 @@ export default tseslint.config(
         },
       ],
     },
-    ignorePatterns: ['**/*.config.js'],
+    ignores: ['**/*.config.js'],
   },
   eslint.configs.recommended,
   tseslint.configs.recommendedTypeChecked,

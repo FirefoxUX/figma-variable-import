@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
@@ -25,6 +26,14 @@ class Config {
   public readonly slackWebhookUrlFailure: string | undefined
   public readonly onlyRunJobs: string[] | undefined
   public readonly dryRun: boolean
+
+  public readonly android: {
+    themeCollectionName: string
+    themeCollectionReferenceMode: string
+    opacityVariablePrefix: string
+    variablePrefix: string
+    variablePrefixAlt: string
+  }
 
   get<K extends keyof Config>(name: K): NonNullable<Config[K]> {
     const value = this[name]
@@ -81,15 +90,16 @@ class Config {
 
     const onlyRunJobsValue =
       config.env.ONLY_RUN_JOBS || process.env.INPUT_ONLY_RUN_JOBS
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     if (onlyRunJobsValue && onlyRunJobsValue.toLowerCase() !== 'all') {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       const array = onlyRunJobsValue
         .split(',')
         .map((job: string) => job.trim())
         .filter((job: string) => job !== '')
       this.onlyRunJobs = array.length > 0 ? array : undefined
     }
+
+    this.android = config.android
+    this.validateAndroidConfig()
 
     this.testConfig()
   }
@@ -107,11 +117,36 @@ class Config {
         `Error loading config: ${name} is not a design URL, it is ${match[1]}`,
       )
     }
-    // if match[3] === 'branch', then we have a branch URL and can replace figmaFileId with match[4]
     if (match[3] && match[4] && match[3] === 'branch') {
       return match[4]
     } else {
       return match[2]
+    }
+  }
+
+  private validateAndroidConfig() {
+    const androidConfig = this.android
+    if (!androidConfig) {
+      throw new Error('Error loading config: android config is undefined')
+    }
+
+    const requiredFields = [
+      'themeCollectionName',
+      'themeCollectionReferenceMode',
+      'opacityVariablePrefix',
+      'variablePrefix',
+      'variablePrefixAlt',
+    ]
+
+    for (const field of requiredFields) {
+      if (
+        !androidConfig[field as keyof typeof androidConfig] ||
+        androidConfig[field as keyof typeof androidConfig] === ''
+      ) {
+        throw new Error(
+          `Error loading config: android.${field} is not defined or empty`,
+        )
+      }
     }
   }
 

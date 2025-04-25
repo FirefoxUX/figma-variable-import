@@ -1,7 +1,7 @@
 import { VariableCreate } from '@figma/rest-api-spec'
 import { FigmaCollections, FigmaVariableValue } from '../types.js'
 import { ExtraStats } from '../UpdateConstructor.js'
-import { figmaToCulori, isFigmaAlias, roundTo } from '../utils.js'
+import { figmaToCulori, getMemoStats, isFigmaAlias, roundTo } from '../utils.js'
 import { summary } from './summary.js'
 import Config from '../Config.js'
 import { formatHex } from '../color.js'
@@ -82,17 +82,39 @@ class WorkflowLogger {
       true,
     )
     summary.addEOL().addSeparator().addEOL()
-    for (let i = 0; i < this.data.length; i++) {
-      const entry = this.data[i]
+    for (const entry of this.data) {
       const infoMessage = this.getJobInfo(entry)
       await this.createJobSummary(entry, infoMessage)
       await this.createJobSlackMessage(entry, infoMessage)
-      if (i < this.data.length - 1) {
-        summary.addEOL().addSeparator().addEOL()
-      }
     }
-
+    this.logMemoizationStats()
     await summary.write()
+  }
+
+  private logMemoizationStats() {
+    const memoStats = getMemoStats()
+    if (memoStats.length > 0) {
+      summary.addEOL().addHeading('Memoization stats', 3)
+      summary.addTable([
+        [
+          { data: 'Function', header: true },
+          { data: 'Hits', header: true },
+          { data: 'Misses', header: true },
+          { data: 'Hit rate', header: true },
+        ],
+        ...memoStats.map((stat) => [
+          stat.name.toString(),
+          stat.hits.toString(),
+          stat.misses.toString(),
+          `${
+            stat.hits + stat.misses === 0
+              ? 'N/A'
+              : `${Math.round((stat.hits / (stat.hits + stat.misses)) * 100)}%`
+          }`,
+        ]),
+      ])
+      summary.addEOL()
+    }
   }
 
   private async createJobSummary(
