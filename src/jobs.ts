@@ -94,7 +94,7 @@ export default [
         FigmaAPIURLs.getLocalVariables(Config.get('figmaIdMobileStyles')),
       )
 
-      const collection = getAndroidModes(figmaMobileColors, figmaAndroidTokens)
+      const collection = getAndroidModes(figmaAndroidTokens, figmaMobileColors)
 
       const ucColor = new UpdateConstructor(
         figmaAndroidTokens,
