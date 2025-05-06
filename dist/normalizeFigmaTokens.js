@@ -5,7 +5,7 @@ export function normalizeFigmaTokens(figmaData) {
             throw new Error(`When normalizing Figma tokens, the collection '${key}' was not found`);
         }
         const variables = Object.values(figmaData.variables).filter((v) => v.variableCollectionId === collection.id);
-        acc[collection.name] = {
+        acc[collection.id] = {
             toJSON: () => `${collection.key}`,
             collection,
             variables,

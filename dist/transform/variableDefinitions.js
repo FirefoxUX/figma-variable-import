@@ -1,9 +1,13 @@
 import Config from '../Config.js';
-import { SYMBOL_RESOLVED_TYPE } from '../utils.js';
+import { getVisibleCollectionByName, SYMBOL_RESOLVED_TYPE } from '../utils.js';
 export function updateVariableDefinitions(uc, tokens, handleDeprecation = false) {
     const figmaTokens = uc.getFigmaTokens();
     for (const collectionLabel in tokens) {
-        const sets = generateVariableSets(tokens[collectionLabel], figmaTokens[collectionLabel]);
+        const collection = getVisibleCollectionByName(figmaTokens, collectionLabel);
+        if (!collection) {
+            throw new Error(`The collection '${collectionLabel}' is missing in the Figma file. Please add it to the Figma file before running the script again.`);
+        }
+        const sets = generateVariableSets(tokens[collectionLabel], collection);
         for (const key of sets.onlyInCentral) {
             const resolvedType = tokens[collectionLabel][key][SYMBOL_RESOLVED_TYPE];
             uc.createVariable(key, collectionLabel, resolvedType);
@@ -13,7 +17,7 @@ export function updateVariableDefinitions(uc, tokens, handleDeprecation = false)
                 if (Config.figmaOnlyVariables?.includes(key)) {
                     continue;
                 }
-                const variableData = figmaTokens[collectionLabel].variables.find((v) => v.name === key);
+                const variableData = collection.variables.find((v) => v.name === key);
                 if (!variableData) {
                     throw new Error(`When adding deprecation tags, the variable ${key} could not be found in the Figma tokens`);
                 }
@@ -27,7 +31,7 @@ export function updateVariableDefinitions(uc, tokens, handleDeprecation = false)
                 }
             }
             for (const key of sets.inBoth) {
-                const variableData = figmaTokens[collectionLabel].variables.find((v) => v.name === key);
+                const variableData = collection.variables.find((v) => v.name === key);
                 if (!variableData) {
                     throw new Error(`When removing deprecation tags, the variable ${key} could not be found in the Figma tokens`);
                 }

@@ -1,9 +1,13 @@
-import { memoize, isFigmaAlias, figmaToCulori } from './utils.js';
+import { memoize, isFigmaAlias, figmaToCulori, getVisibleCollectionByName, getCollectionsByName, } from './utils.js';
 import Config from './Config.js';
 export function getAndroidModes(figmaAndroidTokens, figmaMobileColors) {
     const resolveColor = getResolveColor(figmaMobileColors);
     const themeCollectionName = Config.android.themeCollectionName;
-    const [nonOpacityVariables, opacityVariables] = figmaAndroidTokens[themeCollectionName].variables.reduce((acc, variable) => {
+    const themeCollection = getVisibleCollectionByName(figmaAndroidTokens, themeCollectionName);
+    if (!themeCollection) {
+        throw new Error(`The collection '${themeCollectionName}' is missing in the figma file. Please add it to the figma file before running the script again.`);
+    }
+    const [nonOpacityVariables, opacityVariables] = themeCollection.variables.reduce((acc, variable) => {
         if (variable.name.startsWith(Config.android.opacityVariablePrefix)) {
             acc[1].push(variable);
         }
@@ -74,13 +78,17 @@ export function getAndroidModes(figmaAndroidTokens, figmaMobileColors) {
     };
     return collection;
 }
-const getCollection = memoize((collections, search) => {
+const getCollections = memoize((collections, search) => {
     if ('collectionName' in search) {
-        return collections[search.collectionName];
+        return getCollectionsByName(collections, search.collectionName);
     }
     else {
-        return Object.values(collections).find((collection) => collection.collection.variableIds.includes(search.variableId));
+        const result = Object.values(collections).find((collection) => collection.collection.variableIds.includes(search.variableId));
+        if (result) {
+            return [result];
+        }
     }
+    return [];
 }, 'getCollection');
 const getModeId = memoize((collection, mode) => {
     const modesLookup = [Config.android.themeCollectionReferenceMode, mode];
@@ -118,49 +126,52 @@ export const getResolveColor = (fallbackCollections) => {
             ? search.collectionName
             : 'Unknown collection';
         const errVariableName = 'collectionName' in search ? search.variableName : search.variableId;
-        const collection = getCollection(collections, search);
-        if (!collection) {
+        const foundCollectiond = getCollections(collections, search);
+        if (foundCollectiond.length <= 0) {
             throw new Error(`Collection ${errCollectionName} not found while resolving ${errVariableName}`);
         }
-        const modeId = getModeId(collection, mode);
-        const variableData = getVariableData(collection, search);
-        if (!variableData) {
-            throw new Error(`Variable ${errVariableName} not found in collection ${errCollectionName}`);
-        }
-        const variableValue = getVariableValue(variableData, modeId, {
-            errVariableName,
-            errCollectionName,
-            mode,
-        });
-        if (isFigmaAlias(variableValue)) {
-            try {
-                return resolveColor(collections, mode, {
-                    variableId: variableValue.id,
-                });
+        for (const foundCollection of foundCollectiond) {
+            const modeId = getModeId(foundCollection, mode);
+            const variableData = getVariableData(foundCollection, search);
+            if (!variableData) {
+                throw new Error(`Variable ${errVariableName} not found in collection ${errCollectionName}`);
             }
-            catch (e) {
-                if (collections !== fallbackCollections) {
-                    return resolveColor(fallbackCollections, mode, {
-                        collectionName: collection.collection.name,
-                        variableName: variableData.name,
+            const variableValue = getVariableValue(variableData, modeId, {
+                errVariableName,
+                errCollectionName,
+                mode,
+            });
+            if (isFigmaAlias(variableValue)) {
+                try {
+                    return resolveColor(collections, mode, {
+                        variableId: variableValue.id,
                     });
                 }
-                throw e;
+                catch (e) {
+                    if (collections !== fallbackCollections) {
+                        return resolveColor(fallbackCollections, mode, {
+                            collectionName: foundCollection.collection.name,
+                            variableName: variableData.name,
+                        });
+                    }
+                    throw e;
+                }
             }
+            if (variableValue === null ||
+                typeof variableValue !== 'object' ||
+                !('r' in variableValue) ||
+                !('g' in variableValue) ||
+                !('b' in variableValue) ||
+                !('a' in variableValue)) {
+                throw new Error(`Variable ${errVariableName} in collection ${errCollectionName} is not a color`);
+            }
+            const parsedColor = figmaToCulori(variableValue);
+            if (!parsedColor) {
+                throw new Error(`Variable ${errVariableName} in collection ${errCollectionName} is not a valid color`);
+            }
+            return parsedColor;
         }
-        if (variableValue === null ||
-            typeof variableValue !== 'object' ||
-            !('r' in variableValue) ||
-            !('g' in variableValue) ||
-            !('b' in variableValue) ||
-            !('a' in variableValue)) {
-            throw new Error(`Variable ${errVariableName} in collection ${errCollectionName} is not a color`);
-        }
-        const parsedColor = figmaToCulori(variableValue);
-        if (!parsedColor) {
-            throw new Error(`Variable ${errVariableName} in collection ${errCollectionName} is not a valid color`);
-        }
-        return parsedColor;
+        throw new Error(`Variable ${errVariableName} not found in collection ${errCollectionName}`);
     }, 'resolveColor');
     return resolveColor;
 };

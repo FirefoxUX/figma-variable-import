@@ -1,7 +1,7 @@
 import Config from './Config.js';
 import { customParse, formatHex8 } from './color.js';
+import { createHash } from 'crypto';
 const FIGMA_API_ENDPOINT = 'https://api.figma.com';
-const MEMOIZATION_LIMIT = 1300;
 export const FigmaAPIURLs = {
     getLocalVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
     getPublishedVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/published`,
@@ -154,10 +154,7 @@ export function memoize(fn, givenName) {
     const cache = new Map();
     const fnName = givenName || fn.name || getNameFromStackTrace(new Error());
     const memoizedFn = (...args) => {
-        const key = JSON.stringify(args);
-        if (key.length > MEMOIZATION_LIMIT) {
-            throw new Error(`Memoization arguments are too large. Key length: ${key.length}. Max length: ${MEMOIZATION_LIMIT}. Try to use toJSON on complex objects.`);
-        }
+        const key = quickHash(args);
         if (cache.has(key)) {
             if (RECORD_STATS) {
                 recordMemoStat(fnName, true);
@@ -191,4 +188,36 @@ function getNameFromStackTrace(error) {
     const lines = stack.split('\n');
     const match = lines[1].match(/at (\w+)/);
     return match ? match[1] : 'Unknown function';
+}
+export function getCollectionsByName(collections, name, onlyVisible = false) {
+    return Object.values(collections)
+        .filter((collection) => collection.collection.name === name &&
+        (!onlyVisible || !collection.collection.hiddenFromPublishing))
+        .sort((a, b) => {
+        const aHidden = a.collection.hiddenFromPublishing;
+        const bHidden = b.collection.hiddenFromPublishing;
+        if (aHidden && !bHidden) {
+            return 1;
+        }
+        if (!aHidden && bHidden) {
+            return -1;
+        }
+        return 0;
+    });
+}
+export function getVisibleCollectionByName(collections, name) {
+    const visibleCollections = getCollectionsByName(collections, name, true);
+    if (visibleCollections.length === 0) {
+        return undefined;
+    }
+    if (visibleCollections.length > 1) {
+        throw new Error(`Found multiple visible collections with the name '${name}'. Can't proceed due to ambiguity.`);
+    }
+    return visibleCollections[0];
+}
+export function quickHash(input) {
+    const data = typeof input === 'string' || typeof input === 'number'
+        ? String(input)
+        : JSON.stringify(input);
+    return createHash('sha1').update(data).digest('base64');
 }

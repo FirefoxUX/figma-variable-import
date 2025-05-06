@@ -1,4 +1,4 @@
-import { FigmaAPIURLs, extractAliasParts, fetchFigmaAPI } from './utils.js';
+import { FigmaAPIURLs, extractAliasParts, fetchFigmaAPI, getCollectionsByName, getVisibleCollectionByName, } from './utils.js';
 import { addModesDefinitions } from './transform/modeDefinitions.js';
 import { updateVariableDefinitions } from './transform/variableDefinitions.js';
 import { updateVariables } from './transform/updateVariables.js';
@@ -77,7 +77,11 @@ class UpdateConstructor {
         }
     }
     createVariable(name, collectionLabel, resolvedType) {
-        const variableCollectionId = this.figmaTokens[collectionLabel].collection.id;
+        const variableCollection = getVisibleCollectionByName(this.figmaTokens, collectionLabel);
+        if (!variableCollection) {
+            throw new Error(`When creating variable '${name}', the collection '${collectionLabel}' was not found`);
+        }
+        const variableCollectionId = variableCollection.collection.id;
         const tempId = this.getTempId();
         const obj = {
             action: 'CREATE',
@@ -87,7 +91,7 @@ class UpdateConstructor {
             resolvedType: resolvedType,
         };
         this.changes.variables.push(obj);
-        this.figmaTokens[collectionLabel].variables.push({
+        this.figmaTokens[variableCollectionId].variables.push({
             id: tempId,
             name,
             key: '---',
@@ -108,14 +112,19 @@ class UpdateConstructor {
     }
     createVariableMode(name, collectionLabel) {
         const tempId = this.getTempId();
+        const variableCollection = getVisibleCollectionByName(this.figmaTokens, collectionLabel);
+        if (!variableCollection) {
+            throw new Error(`When creating variable mode '${name}', the collection '${collectionLabel}' was not found`);
+        }
+        const variableCollectionId = variableCollection.collection.id;
         const obj = {
             action: 'CREATE',
             id: tempId,
             name,
-            variableCollectionId: this.figmaTokens[collectionLabel].collection.id,
+            variableCollectionId,
         };
         this.changes.variableModes.push(obj);
-        this.figmaTokens[collectionLabel].collection.modes.push({
+        this.figmaTokens[variableCollectionId].collection.modes.push({
             modeId: tempId,
             name,
         });
@@ -208,25 +217,42 @@ class UpdateConstructor {
         }
     }
     getModeId(collectionLabel, modeName) {
-        return this.figmaTokens[collectionLabel].collection.modes.find((m) => m.name === modeName)?.modeId;
+        const variableCollections = getCollectionsByName(this.figmaTokens, collectionLabel);
+        for (const c of variableCollections) {
+            const result = c.collection.modes.find((m) => {
+                return m.name === modeName;
+            })?.modeId;
+            if (result) {
+                return result;
+            }
+        }
+        return undefined;
     }
     getVariable(collectionLabel, variableName) {
-        return this.figmaTokens[collectionLabel].variables.find((v) => v.name === variableName);
+        const variableCollections = getCollectionsByName(this.figmaTokens, collectionLabel);
+        for (const collection of variableCollections) {
+            const variable = collection.variables.find((v) => v.name === variableName);
+            if (variable) {
+                return variable;
+            }
+        }
+        return undefined;
     }
     resolveCentralAlias(centralAlias) {
         const aliasParts = extractAliasParts(centralAlias);
         if (!aliasParts) {
             throw new Error(`When resolving alias '${centralAlias}', the alias could not be parsed`);
         }
-        const { collection, variable } = aliasParts;
-        if (this.figmaTokens[collection]) {
-            const resolvedVariable = this.figmaTokens[collection].variables.find((v) => v.name === variable);
+        const { collection: collectionName, variable } = aliasParts;
+        const collections = getCollectionsByName(this.figmaTokens, collectionName);
+        for (const c of collections) {
+            const resolvedVariable = c.variables.find((v) => v.name === variable);
             if (resolvedVariable) {
                 return resolvedVariable;
             }
         }
-        if (this.fileVariables[collection]) {
-            const figmaVariable = this.fileVariables[collection][variable];
+        if (this.fileVariables[collectionName]) {
+            const figmaVariable = this.fileVariables[collectionName][variable];
             if (figmaVariable && 'id' in figmaVariable) {
                 return {
                     ...figmaVariable,
