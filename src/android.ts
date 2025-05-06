@@ -7,7 +7,13 @@ import {
   CentralCollection,
   CentralVariable,
 } from './types.js'
-import { memoize, isFigmaAlias, figmaToCulori } from './utils.js'
+import {
+  memoize,
+  isFigmaAlias,
+  figmaToCulori,
+  getVisibleCollectionByName,
+  getCollectionsByName,
+} from './utils.js'
 import Config from './Config.js'
 
 type SearchByCollectionName = { collectionName: string; variableName: string }
@@ -31,21 +37,31 @@ export function getAndroidModes(
 
   const themeCollectionName = Config.android.themeCollectionName
 
-  // first we split figmaAndroidTokens[themeCollectionName].variables into two groups
-  // those that start with "State Layers/" and those that don't
-  const [nonOpacityVariables, opacityVariables] = figmaAndroidTokens[
-    themeCollectionName
-  ].variables.reduce(
-    (acc, variable) => {
-      if (variable.name.startsWith(Config.android.opacityVariablePrefix)) {
-        acc[1].push(variable)
-      } else {
-        acc[0].push(variable)
-      }
-      return acc
-    },
-    [[], []] as [LocalVariable[], LocalVariable[]],
+  const themeCollection = getVisibleCollectionByName(
+    figmaAndroidTokens,
+    themeCollectionName,
   )
+
+  if (!themeCollection) {
+    throw new Error(
+      `The collection '${themeCollectionName}' is missing in the figma file. Please add it to the figma file before running the script again.`,
+    )
+  }
+
+  // first we split themeCollectionName variables into two groups
+  // those that start with "State Layers/" and those that don't
+  const [nonOpacityVariables, opacityVariables] =
+    themeCollection.variables.reduce(
+      (acc, variable) => {
+        if (variable.name.startsWith(Config.android.opacityVariablePrefix)) {
+          acc[1].push(variable)
+        } else {
+          acc[0].push(variable)
+        }
+        return acc
+      },
+      [[], []] as [LocalVariable[], LocalVariable[]],
+    )
 
   const updatedNonOpacityVariables = nonOpacityVariables.reduce(
     (acc, variable) => {
@@ -147,18 +163,19 @@ export function getAndroidModes(
   return collection
 }
 
-const getCollection = memoize(
-  (
-    collections: FigmaCollections,
-    search: Search,
-  ): FigmaCollection | undefined => {
+const getCollections = memoize(
+  (collections: FigmaCollections, search: Search): FigmaCollection[] => {
     if ('collectionName' in search) {
-      return collections[search.collectionName]
+      return getCollectionsByName(collections, search.collectionName)
     } else {
-      return Object.values(collections).find((collection) =>
+      const result = Object.values(collections).find((collection) =>
         collection.collection.variableIds.includes(search.variableId),
       )
+      if (result) {
+        return [result]
+      }
     }
+    return []
   },
   'getCollection',
 )
@@ -221,65 +238,70 @@ export const getResolveColor = (fallbackCollections: FigmaCollections) => {
       const errVariableName =
         'collectionName' in search ? search.variableName : search.variableId
 
-      const collection = getCollection(collections, search)
-      if (!collection) {
+      const foundCollectiond = getCollections(collections, search)
+      if (foundCollectiond.length <= 0) {
         throw new Error(
           `Collection ${errCollectionName} not found while resolving ${errVariableName}`,
         )
       }
 
-      const modeId = getModeId(collection, mode)
+      for (const foundCollection of foundCollectiond) {
+        const modeId = getModeId(foundCollection, mode)
 
-      const variableData = getVariableData(collection, search)
-      if (!variableData) {
-        throw new Error(
-          `Variable ${errVariableName} not found in collection ${errCollectionName}`,
-        )
-      }
-
-      const variableValue = getVariableValue(variableData, modeId, {
-        errVariableName,
-        errCollectionName,
-        mode,
-      })
-
-      if (isFigmaAlias(variableValue)) {
-        try {
-          return resolveColor(collections, mode, {
-            variableId: variableValue.id,
-          })
-        } catch (e) {
-          if (collections !== fallbackCollections) {
-            return resolveColor(fallbackCollections, mode, {
-              collectionName: collection.collection.name,
-              variableName: variableData.name,
-            })
-          }
-          throw e
+        const variableData = getVariableData(foundCollection, search)
+        if (!variableData) {
+          throw new Error(
+            `Variable ${errVariableName} not found in collection ${errCollectionName}`,
+          )
         }
-      }
 
-      if (
-        variableValue === null ||
-        typeof variableValue !== 'object' ||
-        !('r' in variableValue) ||
-        !('g' in variableValue) ||
-        !('b' in variableValue) ||
-        !('a' in variableValue)
-      ) {
-        throw new Error(
-          `Variable ${errVariableName} in collection ${errCollectionName} is not a color`,
-        )
-      }
+        const variableValue = getVariableValue(variableData, modeId, {
+          errVariableName,
+          errCollectionName,
+          mode,
+        })
 
-      const parsedColor = figmaToCulori(variableValue)
-      if (!parsedColor) {
-        throw new Error(
-          `Variable ${errVariableName} in collection ${errCollectionName} is not a valid color`,
-        )
-      }
+        if (isFigmaAlias(variableValue)) {
+          try {
+            return resolveColor(collections, mode, {
+              variableId: variableValue.id,
+            })
+          } catch (e) {
+            if (collections !== fallbackCollections) {
+              return resolveColor(fallbackCollections, mode, {
+                collectionName: foundCollection.collection.name,
+                variableName: variableData.name,
+              })
+            }
+            throw e
+          }
+        }
 
-      return parsedColor
+        if (
+          variableValue === null ||
+          typeof variableValue !== 'object' ||
+          !('r' in variableValue) ||
+          !('g' in variableValue) ||
+          !('b' in variableValue) ||
+          !('a' in variableValue)
+        ) {
+          throw new Error(
+            `Variable ${errVariableName} in collection ${errCollectionName} is not a color`,
+          )
+        }
+
+        const parsedColor = figmaToCulori(variableValue)
+        if (!parsedColor) {
+          throw new Error(
+            `Variable ${errVariableName} in collection ${errCollectionName} is not a valid color`,
+          )
+        }
+
+        return parsedColor
+      }
+      throw new Error(
+        `Variable ${errVariableName} not found in collection ${errCollectionName}`,
+      )
     },
     'resolveColor',
   )

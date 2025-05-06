@@ -5,7 +5,7 @@ import {
   TypedCentralCollections,
 } from '../types.js'
 import Config from '../Config.js'
-import { SYMBOL_RESOLVED_TYPE } from '../utils.js'
+import { getVisibleCollectionByName, SYMBOL_RESOLVED_TYPE } from '../utils.js'
 
 /**
  * Updates the variable definitions based on the provided UpdateConstructor.
@@ -20,11 +20,17 @@ export function updateVariableDefinitions(
   handleDeprecation = false,
 ) {
   const figmaTokens = uc.getFigmaTokens()
+
   for (const collectionLabel in tokens) {
-    const sets = generateVariableSets(
-      tokens[collectionLabel],
-      figmaTokens[collectionLabel],
-    )
+    const collection = getVisibleCollectionByName(figmaTokens, collectionLabel)
+
+    if (!collection) {
+      throw new Error(
+        `The collection '${collectionLabel}' is missing in the Figma file. Please add it to the Figma file before running the script again.`,
+      )
+    }
+
+    const sets = generateVariableSets(tokens[collectionLabel], collection)
 
     // Create variables that are only in the central collection
     for (const key of sets.onlyInCentral) {
@@ -39,9 +45,7 @@ export function updateVariableDefinitions(
         if (Config.figmaOnlyVariables?.includes(key)) {
           continue
         }
-        const variableData = figmaTokens[collectionLabel].variables.find(
-          (v) => v.name === key,
-        )
+        const variableData = collection.variables.find((v) => v.name === key)
         if (!variableData) {
           throw new Error(
             `When adding deprecation tags, the variable ${key} could not be found in the Figma tokens`,
@@ -61,9 +65,7 @@ export function updateVariableDefinitions(
 
       // Remove deprecation tags from variables that are in both collections
       for (const key of sets.inBoth) {
-        const variableData = figmaTokens[collectionLabel].variables.find(
-          (v) => v.name === key,
-        )
+        const variableData = collection.variables.find((v) => v.name === key)
         if (!variableData) {
           throw new Error(
             `When removing deprecation tags, the variable ${key} could not be found in the Figma tokens`,

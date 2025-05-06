@@ -1,14 +1,16 @@
 import { RGBA, VariableAlias, VariableCreate } from '@figma/rest-api-spec'
 import {
+  FigmaCollection,
+  FigmaCollections,
   FigmaResponseWrapper,
   FigmaResultCollection,
   TypedCentralCollections,
 } from './types.js'
 import Config from './Config.js'
 import { Color, customParse, formatHex8, type Rgb } from './color.js'
+import { createHash } from 'crypto'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
-const MEMOIZATION_LIMIT = 1300
 
 export const FigmaAPIURLs = {
   getLocalVariables: (fileId: string) =>
@@ -240,14 +242,7 @@ export function memoize<T extends (...args: any[]) => any>(
   const memoizedFn: (...args: Parameters<T>) => ReturnType<T> = (
     ...args: Parameters<T>
   ): ReturnType<T> => {
-    const key = JSON.stringify(args)
-
-    // throw an error if the key is too long
-    if (key.length > MEMOIZATION_LIMIT) {
-      throw new Error(
-        `Memoization arguments are too large. Key length: ${key.length}. Max length: ${MEMOIZATION_LIMIT}. Try to use toJSON on complex objects.`,
-      )
-    }
+    const key = quickHash(args)
 
     if (cache.has(key)) {
       if (RECORD_STATS) {
@@ -288,4 +283,73 @@ function getNameFromStackTrace(error: Error): string {
   const lines = stack.split('\n')
   const match = lines[1].match(/at (\w+)/)
   return match ? match[1] : 'Unknown function'
+}
+
+/**
+ * Retrieves an array of Figma collections that match the specified name.
+ * Optionally filters the collections to include only those that are visible in the Figma file.
+ *
+ * @param collections - An object containing Figma collections, where the keys are collection IDs
+ * and the values are the corresponding collection objects.
+ * @param name - The name of the collections to retrieve.
+ * @param onlyVisible - A boolean indicating whether to include only collections that are visible
+ * (i.e., not hidden from publishing). Defaults to `false`.
+ * @returns An array of Figma collections that match the specified name, sorted such that
+ * collections with `hiddenFromPublishing = false` appear first.
+ */
+export function getCollectionsByName(
+  collections: FigmaCollections,
+  name: string,
+  onlyVisible = false,
+): FigmaCollection[] {
+  return Object.values(collections)
+    .filter(
+      (collection) =>
+        collection.collection.name === name &&
+        (!onlyVisible || !collection.collection.hiddenFromPublishing),
+    )
+    .sort((a, b) => {
+      // sort so hiddenFromPublishing = false comes first
+      const aHidden = a.collection.hiddenFromPublishing
+      const bHidden = b.collection.hiddenFromPublishing
+      if (aHidden && !bHidden) {
+        return 1
+      }
+      if (!aHidden && bHidden) {
+        return -1
+      }
+      return 0
+    })
+}
+
+export function getVisibleCollectionByName(
+  collections: FigmaCollections,
+  name: string,
+): FigmaCollection | undefined {
+  const visibleCollections = getCollectionsByName(collections, name, true)
+  if (visibleCollections.length === 0) {
+    return undefined
+  }
+  if (visibleCollections.length > 1) {
+    throw new Error(
+      `Found multiple visible collections with the name '${name}'. Can't proceed due to ambiguity.`,
+    )
+  }
+  return visibleCollections[0]
+}
+
+/**
+ * Generates a quick hash for a given input using the SHA-1 algorithm and encodes it in Base64.
+ *
+ * @param input - The input to hash, which can be a string, number, or object.
+ *                If the input is an object, it will be serialized to a JSON string.
+ * @returns A Base64-encoded hash string representing the input.
+ */
+export function quickHash(input: string | number | object): string {
+  const data =
+    typeof input === 'string' || typeof input === 'number'
+      ? String(input)
+      : JSON.stringify(input)
+
+  return createHash('sha1').update(data).digest('base64')
 }

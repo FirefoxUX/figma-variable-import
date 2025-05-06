@@ -26,7 +26,7 @@ export function normalizeFigmaTokens(
       (v) => v.variableCollectionId === collection.id,
     )
 
-    acc[collection.name] = {
+    acc[collection.id] = {
       toJSON: () => `${collection.key}`,
       collection,
       variables,

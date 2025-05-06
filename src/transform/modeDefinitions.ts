@@ -4,6 +4,7 @@ import {
   TypedCentralCollection,
   TypedCentralCollections,
 } from '../types.js'
+import { getVisibleCollectionByName } from '../utils.js'
 
 /**
  * Adds mode definitions to the given `UpdateConstructor` instance.
@@ -17,7 +18,10 @@ export function addModesDefinitions(
   const figmaTokens = uc.getFigmaTokens()
   for (const collectionLabel in tokens) {
     // Throw an error if the collection is missing in the figma file.
-    if (!figmaTokens[collectionLabel]) {
+
+    const collection = getVisibleCollectionByName(figmaTokens, collectionLabel)
+
+    if (!collection) {
       throw new Error(
         `The collection '${collectionLabel}' is missing in the figma file. Please add it to the figma file before running the script again.
 Figma collections: ${Object.keys(figmaTokens).join(', ')}
@@ -27,7 +31,7 @@ Central collections: ${Object.keys(tokens).join(', ')}`,
     // Generate a set of modes only present in the central collection.
     const { onlyInCentral } = generateModeSets(
       tokens[collectionLabel],
-      figmaTokens[collectionLabel],
+      collection,
     )
     // Create a variable mode for each mode only present in the central collection.
     for (const key of onlyInCentral) {
