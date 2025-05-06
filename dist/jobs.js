@@ -48,7 +48,7 @@ export default [
         action: async () => {
             const figmaAndroidTokens = await memoGetFigmaTokensFromFile(FigmaAPIURLs.getLocalVariables(Config.get('figmaIdAndroidComponents')));
             const figmaMobileColors = await memoGetFigmaTokensFromFile(FigmaAPIURLs.getLocalVariables(Config.get('figmaIdMobileStyles')));
-            const collection = getAndroidModes(figmaMobileColors, figmaAndroidTokens);
+            const collection = getAndroidModes(figmaAndroidTokens, figmaMobileColors);
             const ucColor = new UpdateConstructor(figmaAndroidTokens, Config.get('figmaIdAndroidComponents'));
             ucColor.constructUpdate(collection);
             await ucColor.submitChanges(Config.dryRun);
