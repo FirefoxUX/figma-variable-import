@@ -8,6 +8,7 @@ import Config from './Config.js'
 import { Color, customParse, formatHex8, type Rgb } from './color.js'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
+const MEMOIZATION_LIMIT = 1300
 
 export const FigmaAPIURLs = {
   getLocalVariables: (fileId: string) =>
@@ -215,7 +216,7 @@ export function getMemoStats() {
  * the function's name or a name derived from the stack trace will be used.
  * @returns A memoized version of the input function `fn`.
  *
- * @throws {Error} If the serialized key for the arguments exceeds 1000 characters.
+ * @throws {Error} If the serialized key for the arguments exceeds MEMOIZATION_LIMIT characters.
  * This is to prevent excessive memory usage or performance degradation.
  *
  * @remarks
@@ -242,9 +243,9 @@ export function memoize<T extends (...args: any[]) => any>(
     const key = JSON.stringify(args)
 
     // throw an error if the key is too long
-    if (key.length > 1000) {
+    if (key.length > MEMOIZATION_LIMIT) {
       throw new Error(
-        `Memoization arguments are too large. Key length: ${key.length}. Max length: 1000. Try to use toJSON on complex objects.`,
+        `Memoization arguments are too large. Key length: ${key.length}. Max length: ${MEMOIZATION_LIMIT}. Try to use toJSON on complex objects.`,
       )
     }
 

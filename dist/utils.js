@@ -1,6 +1,7 @@
 import Config from './Config.js';
 import { customParse, formatHex8 } from './color.js';
 const FIGMA_API_ENDPOINT = 'https://api.figma.com';
+const MEMOIZATION_LIMIT = 1300;
 export const FigmaAPIURLs = {
     getLocalVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
     getPublishedVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/published`,
@@ -154,8 +155,8 @@ export function memoize(fn, givenName) {
     const fnName = givenName || fn.name || getNameFromStackTrace(new Error());
     const memoizedFn = (...args) => {
         const key = JSON.stringify(args);
-        if (key.length > 1000) {
-            throw new Error(`Memoization arguments are too large. Key length: ${key.length}. Max length: 1000. Try to use toJSON on complex objects.`);
+        if (key.length > MEMOIZATION_LIMIT) {
+            throw new Error(`Memoization arguments are too large. Key length: ${key.length}. Max length: ${MEMOIZATION_LIMIT}. Try to use toJSON on complex objects.`);
         }
         if (cache.has(key)) {
             if (RECORD_STATS) {
