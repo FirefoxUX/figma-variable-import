@@ -12,7 +12,7 @@ ButtonBorder:
   Win10: '#FFFFFF'
   Win10White: '#C0C0C0'
 ButtonFace:
-  NightSky: '#000000'
+  NightSky: '#292929'
   Desert: '#FFFAEF'
   Dusk: '#2D3236'
   Win10: '#000000'
