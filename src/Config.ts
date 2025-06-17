@@ -31,7 +31,6 @@ class Config {
     themeCollectionName: string
     themeCollectionReferenceMode: string
     opacityVariablePrefix: string
-    variablePrefix: string
     variablePrefixAlt: string
   }
 
@@ -134,7 +133,6 @@ class Config {
       'themeCollectionName',
       'themeCollectionReferenceMode',
       'opacityVariablePrefix',
-      'variablePrefix',
       'variablePrefixAlt',
     ]
 

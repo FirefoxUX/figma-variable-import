@@ -33,7 +33,6 @@ android:
   themeCollectionName: 'Color (M3)'
   themeCollectionReferenceMode: 'Acorn / Default'
   opacityVariablePrefix: 'State Layers/'
-  variablePrefix: ''
   variablePrefixAlt: 'Not Using (yet)/'
 
 ######################
