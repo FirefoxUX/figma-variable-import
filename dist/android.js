@@ -42,7 +42,7 @@ export function getAndroidModes(figmaAndroidTokens, figmaMobileColors) {
             throw new Error(`When parsing opacity variable, the value for ${opacity} is not a number`);
         }
         const variableName = `${referencedVariableName}`;
-        const variableNameFallback = `${referencedVariableName}`;
+        const variableNameFallback = `${Config.android.variablePrefixAlt}${referencedVariableName}`;
         const resolveWithFallback = (mode, name, fallback) => {
             let color = undefined;
             try {

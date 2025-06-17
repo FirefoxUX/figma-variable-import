@@ -105,7 +105,7 @@ export function getAndroidModes(
     }
 
     const variableName = `${referencedVariableName}`
-    const variableNameFallback = `${referencedVariableName}`
+    const variableNameFallback = `${Config.android.variablePrefixAlt}${referencedVariableName}`
 
     const resolveWithFallback = (
       mode: 'Light' | 'Dark' | 'Private',
