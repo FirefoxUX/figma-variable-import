@@ -89,7 +89,6 @@ class Config {
             'themeCollectionName',
             'themeCollectionReferenceMode',
             'opacityVariablePrefix',
-            'variablePrefix',
             'variablePrefixAlt',
         ];
         for (const field of requiredFields) {
