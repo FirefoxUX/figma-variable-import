@@ -1,0 +1,34 @@
+---
+
+border/color/overlay:
+  Light: '#F0F0F4'
+  Dark: '#52525E'
+  HCM: '{HCM Theme$CanvasText}'
+border/color/default:
+  Light: '#CFCFD8'
+  Dark: '#3A3944'
+  HCM: '{HCM Theme$CanvasText}'
+background/color/tabstrip:
+  Light: 'F0F0F4'
+  Dark: '1C1B22'
+  HCM: '{HCM Theme$ActiveText}'
+background/color/toolbar:
+  Light: '#F9F9FB'
+  Dark: '#2B2A33'
+  HCM: '{HCM Theme$Canvas}'
+background/color/tab:
+  Light: '{Colors$color/white}'
+  Dark: '#52525E'
+  HCM: '{HCM Theme$Canvas}'
+background/color/canvas-v2:
+  Light: '#F9F9FB'
+  Dark: '#1C1B22'
+  HCM: '{HCM Theme$Canvas}'
+background/color/backdrop:
+  Light: 'rgba(0, 0, 0, 0.25)'
+  Dark: 'rgba(0, 0, 0, 0.25)'
+  HCM: 'rgba(0, 0, 0, 0.25)'
+color/accent/primary/deemphasized:
+  Light: 'rgba(0, 98, 250, 0.08)'
+  Dark: 'rgba(0, 202, 219, 0.08)'
+  HCM: '{HCM Theme$SelectedItem}'

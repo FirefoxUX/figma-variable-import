@@ -1,5 +1,6 @@
 import { customParse, Color, formatHex8 } from './color.js'
 import Config from './Config.js'
+import { THEME_MAP } from './imports.js'
 import { extractAliasParts } from './utils.js'
 
 type RawPrimitiveValue = string | number | boolean
@@ -24,7 +25,7 @@ type ThemeTokens = {
   HCM: string | number | boolean
 }
 
-type CentralTokens = {
+export type CentralTokens = {
   Colors: Record<string, PrimitiveTokens>
   Primitives: Record<string, PrimitiveTokens>
   Theme: Record<string, ThemeTokens>
@@ -40,6 +41,7 @@ export async function getCentralCollectionValues(): Promise<CentralAndRelativeTo
     .then(normalizeNames)
     .then(replaceTextColor)
     .then(filterRelativeUnits)
+    .then(mergeStaticTokens)
 
   return result
 }
@@ -175,6 +177,22 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
   }
 
   return tokens
+}
+
+function mergeStaticTokens(
+  tokens: CentralAndRelativeTokens,
+): CentralAndRelativeTokens {
+  const mergedTheme = {
+    ...THEME_MAP,
+    ...tokens.central.Theme,
+  }
+  return {
+    ...tokens,
+    central: {
+      ...tokens.central,
+      Theme: mergedTheme,
+    },
+  }
 }
 
 function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {

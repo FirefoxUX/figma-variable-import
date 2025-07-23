@@ -20,7 +20,6 @@ class Config {
     primitives: string
     theme: string
   }
-  public readonly figmaOnlyVariables: string[] | undefined
   public readonly figmaAccessToken: string
   public readonly slackWebhookUrlSuccess: string | undefined
   public readonly slackWebhookUrlFailure: string | undefined
@@ -71,7 +70,6 @@ class Config {
     )
     this.centralCurrentColorAlias = config.centralCurrentColorAlias
     this.centralSource = config.centralSource
-    this.figmaOnlyVariables = config.figmaOnlyVariables
 
     // Environment variables (can be overriden by config.yaml)
     this.figmaAccessToken =
@@ -163,18 +161,6 @@ class Config {
       this.centralSource.theme === undefined
     ) {
       throw new Error('Error loading config: centralSource is not valid')
-    }
-    if (this.figmaOnlyVariables !== undefined) {
-      if (!Array.isArray(this.figmaOnlyVariables)) {
-        throw new Error(
-          'Error loading config: figmaOnlyVariables is not an array',
-        )
-      }
-      if (!this.figmaOnlyVariables.every((v) => typeof v === 'string')) {
-        throw new Error(
-          'Error loading config: figmaOnlyVariables is not an array of strings',
-        )
-      }
     }
 
     if (this.figmaAccessToken === undefined) {

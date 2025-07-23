@@ -4,7 +4,6 @@ import {
   FigmaCollection,
   TypedCentralCollections,
 } from '../types.js'
-import Config from '../Config.js'
 import { getVisibleCollectionByName, SYMBOL_RESOLVED_TYPE } from '../utils.js'
 
 /**
@@ -42,9 +41,6 @@ export function updateVariableDefinitions(
     if (handleDeprecation) {
       // Add deprecation tags to variables that are only in the Figma collection
       for (const key of sets.onlyInFigma) {
-        if (Config.figmaOnlyVariables?.includes(key)) {
-          continue
-        }
         const variableData = collection.variables.find((v) => v.name === key)
         if (!variableData) {
           throw new Error(
