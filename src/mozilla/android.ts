@@ -1,20 +1,15 @@
 import { LocalVariable } from '@figma/rest-api-spec'
-import { Color, Rgb } from './color.js'
-import {
-  FigmaCollections,
-  FigmaCollection,
-  CentralCollections,
-  CentralCollection,
-  CentralVariable,
-} from './types.js'
+import { Color, Rgb } from '../color.js'
+import { FigmaCollections, FigmaCollection } from '../figma/types.js'
 import {
   memoize,
   isFigmaAlias,
   figmaToCulori,
   getVisibleCollectionByName,
   getCollectionsByName,
-} from './utils.js'
-import Config from './Config.js'
+} from '../utils.js'
+import Config from '../Config.js'
+import { VDCollections, VDVariable, VDCollection } from '../vd.js'
 
 type SearchByCollectionName = { collectionName: string; variableName: string }
 type SearchByVariableId = { variableId: string }
@@ -32,7 +27,7 @@ type VariableValueErrorParams = {
 export function getAndroidModes(
   figmaAndroidTokens: FigmaCollections,
   figmaMobileColors: FigmaCollections,
-): CentralCollections {
+): VDCollections {
   const resolveColor = getResolveColor(figmaMobileColors)
 
   const themeCollectionName = Config.android.themeCollectionName
@@ -65,7 +60,7 @@ export function getAndroidModes(
 
   const updatedNonOpacityVariables = nonOpacityVariables.reduce(
     (acc, variable) => {
-      const updatedVariable: CentralVariable = {
+      const updatedVariable: VDVariable = {
         'Acorn / Light': resolveColor(figmaAndroidTokens, 'Light', {
           collectionName: themeCollectionName,
           variableName: variable.name,
@@ -86,7 +81,7 @@ export function getAndroidModes(
 
       return acc
     },
-    {} as CentralCollection,
+    {} as VDCollection,
   )
 
   // filter to get only variables whose name starts with "State Layers/"
@@ -131,7 +126,7 @@ export function getAndroidModes(
       }
     }
 
-    const updatedVariable: CentralVariable = {
+    const updatedVariable: VDVariable = {
       'Acorn / Light': resolveWithFallback(
         'Light',
         variableName,
@@ -152,9 +147,9 @@ export function getAndroidModes(
     acc[variable.name] = updatedVariable
 
     return acc
-  }, {} as CentralCollection)
+  }, {} as VDCollection)
 
-  const collection: CentralCollections = {
+  const collection: VDCollections = {
     [themeCollectionName]: {
       ...updatedNonOpacityVariables,
       ...updatedOpacityVariables,

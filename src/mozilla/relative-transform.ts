@@ -1,6 +1,5 @@
-import { OPERATING_SYSTEM_MAP, SURFACE_MAP } from './imports.js'
-import { CentralVariable, CentralCollection } from './types.js'
-import { extractAliasParts } from './utils.js'
+import { OPERATING_SYSTEM_MAP, SURFACE_MAP } from '../imports.js'
+import { VDVariable, VDCollection, extractVdReference } from '../vd.js'
 
 const CHROME_ROOT_KEY = 'typography/font-size/chrome/body/root'
 const IN_CONTENT_ROOT_KEY = 'typography/font-size/in-content/body/root'
@@ -77,8 +76,8 @@ function addSurfaceTokens(
 function processSurfaceReferences(
   renamedKeysMap: Record<string, Partial<Record<string, string>>>,
   referenceMap: Record<string, string>,
-  rootEntries: { 'in-content': CentralVariable; chrome: CentralVariable },
-  updatedOperatingSystemMap: CentralCollection,
+  rootEntries: { 'in-content': VDVariable; chrome: VDVariable },
+  updatedOperatingSystemMap: VDCollection,
 ) {
   const surfaceReferenceQueue = Object.assign({}, renamedKeysMap)
 
@@ -119,8 +118,8 @@ function processSurfaceReferences(
 
 function processRelativeValues(
   relativeValues: Record<string, number>,
-  rootEntries: { 'in-content': CentralVariable; chrome: CentralVariable },
-  updatedOperatingSystemMap: CentralCollection,
+  rootEntries: { 'in-content': VDVariable; chrome: VDVariable },
+  updatedOperatingSystemMap: VDCollection,
 ): Record<string, Partial<Record<string, string>>> {
   const renamedKeysMap: Record<string, Partial<Record<string, string>>> = {}
   for (const [relativeKey, relativeValue] of Object.entries(relativeValues)) {
@@ -172,7 +171,7 @@ function normalizeRelativeValues(
         )
       }
 
-      const aliasParts = extractAliasParts(value.Value)
+      const aliasParts = extractVdReference(value.Value)
       if (aliasParts !== null) {
         acc.reference[key] = aliasParts.variable
         return acc

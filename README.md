@@ -1,78 +1,92 @@
 # figma-variable-import
 
-This repository contains a script to fetch design tokens from Mozilla Central and import them into the Firefox Figma library. The script helps keep the Figma design files synchronized with the latest design tokens used across Firefox, ensuring consistency in design systems.
+This project provides a flexible system for interacting with the [Figma Variables REST API](https://www.figma.com/developers/api#variables), allowing you to query, sync, and update variables from within GitHub Actions.
 
-## Workflow Overview
+Despite the name, this repository is capable of a wide range of tasks around managing Figma Variables—not just importing. The system is built around jobs that are executed in GitHub Actions workflows, using a unified format to bridge the gap between external design token systems and Figma’s internal variable model.
 
-### Automated Sync via GitHub Actions
+---
 
-Every Tuesday at 4 PM UTC, a GitHub Action automatically checks for changes in the design tokens from Mozilla Central. If changes are detected, the following steps occur:
-1. A Slack Workflow is triggered via webhook, sending a message team that there are outstanding changes.
-2. The team must manually apply these changes by following the steps outlined below.
+## Overview
 
-### Applying Changes to the Figma File
+### GitHub Actions / Job System
 
-1. **Create a New Branch:**
-   - Before applying the token updates, create a new branch from the file containing the relevant Figma styles.
-   
-2. **Trigger the Workflow:**
-   - Once the new branch is ready, manually trigger the corresponding GitHub workflow by providing the URL of the workflow as an argument. This workflow will apply the token changes to the branch.
-3. **Review Changes:**
-   - After the workflow completes, review the changes in the Figma file to ensure they are correct.
+All operations are designed to run inside GitHub Actions.
 
-(**Note:** If it were possible in the future to generate branches automatically and request a review through the Figma REST API, it could be done in one step.)
+- The core job orchestration is defined in `jobs.ts`.
+- Jobs are configured to automate workflows such as importing, diffing, and updating Figma variables.
 
-## Development
+### Figma API Integration
 
-For local development, follow these steps:
+This module provides the ability to:
 
-1. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
-2. **Run the Script Locally:** You can run the script locally for testing or development purposes using:
-    ```bash
-    npm run start
-    ```
-3. **Build Before Committing:** Before committing any changes, ensure the script is built:
-    ```bash
-    npm run build
-    ```
+- Fetch current variable collections from a Figma file
+- Translate external design tokens into Figma-compatible formats
+- Submit diffs to the Figma Variables API with precision
 
-### Token yaml format
+#### Figma Variable Concepts
 
-The script uses a custom format to ingest the tokens. Each file is for a Figma collection, each collection contains a variable, each variable contains a mode, and each mode contains a value. Values can be aliased to other values with the syntax `{collection$variableName}`.
+- **Variable Types**: RGBA colors, strings, numbers, booleans, or references to other variables.
+- **Collections**: Variables are grouped inside collections. A file can contain multiple collections.
+- **Modes**: Variables can have multiple modes (e.g., for light/dark themes). All variables in a collection must have a value for each mode.
 
-Example:
+#### ID-based API
+
+- Figma assigns **uncontrollable IDs** to collections, variables, and modes.
+- External design tokens are usually organized by **name**, not ID—so syncing requires mapping names to Figma IDs.
+
+To bridge this gap, the project introduces the **Variable Description Format (VDF)**, a JSON-like structure for defining token data.
+
+#### Variable Description Format (VDF)
+
+```ts
+export type VDVariableValue = number | boolean | string | Rgb
+
+export type VDCollections = {
+  [collectionName: string]: VDCollection
+}
+
+export type VDCollection = {
+  [variableName: string]: VDVariable
+}
+
+export type VDVariable = {
+  [modeName: string]: VDVariableValue
+}
+```
+
+#### YAML Example
+
 ```yaml
-path/name/for/variable:
-  Mode1: 123
-  Mode2: 456
-another/path/for/variable:
-  Mode1: 123
-  Mode2: '{other collection$path/name/for/variable}'
+Collection1:
+  color/black:
+    ModeName: '#000000'
+  color/white:
+    ModeName: '#FFFFFF'
+Collection2:
+  nested/token:
+    Mode1: '#000000'
+    Mode2: 'oklch(83% 0.14 15)'
+    Mode3: '{Collection1$color/black}'
+  nested/token/hover:
+    Mode1: '#FFFFFF'
+    Mode2: '{Collection1$color/white}'
+    Mode3: 'rgba(255, 0, 0, 0.15)'
 ```
 
-Variables need to be imported in `imports.ts` and then added in the `index.ts` file. The central tokens first get normalized into this format in `central-import.ts`.
+#### Key Functions
 
-### Notable files
-Some short descriptions of some noteworthy files in the repository to help navigate the codebase.
+- `getFigmaCollections`  
+  Fetches collections, variables, and mode metadata from a Figma file.
 
-```bash
-├── config
-│   ├── config.yaml                 # Configuration file for the action
-│   ├── hcm.yaml                    # Additional tokens for HCM
-│   ├── operating-system.yaml       # Additional tokens for different operating systems
-│   └── surface.yaml                # Additional tokens for different surfaces
-└── src
-    ├── Config.ts                   # Loads the config file and ENV variables
-    ├── UpdateConstructor.ts        # Class to construct and submit the Figma API call
-    ├── action.yaml                 # Configuration for the github action
-    ├── central-import.ts           # Responsible for downloading and normalizing the central tokens file
-    ├── imports.ts                  # file that imports other tokens yaml files
-    ├── transform
-    │   ├── modeDefinitions.ts      # 1. Determines which modes need to be added 
-    │   ├── variableDefinitions.ts  # 2. Determines which variables need to be added or deprecated
-    │   └── updateVariables.ts      # 3. Updates the value of the variables if neccessary
-    └── workflow                    # Utilities for the github actions
-```
+- `submitVDCollections`  
+  Compares current Figma collections with your `VDCollections` and submits updates via the Figma API.  
+  *Note: Variables, modes, and collections are never deleted—only added or updated.*
+
+---
+
+### Mozilla-Specific Code
+
+The `mozilla/` directory contains code specific to Mozilla’s design token system. It includes:
+
+- Logic to reorganize Mozilla’s design tokens into the VDF structure
+- Helpers to resolve CSS functions (e.g., `color-mix`) into final color values compatible with Figma

@@ -1,10 +1,7 @@
+import { FigmaCollection } from '../types.js'
+import { getVisibleCollectionByName } from '../../utils.js'
+import { TypedVDCollection, TypedVDCollections } from '../../vd.js'
 import UpdateConstructor from '../UpdateConstructor.js'
-import {
-  FigmaCollection,
-  TypedCentralCollection,
-  TypedCentralCollections,
-} from '../types.js'
-import { getVisibleCollectionByName } from '../utils.js'
 
 /**
  * Adds mode definitions to the given `UpdateConstructor` instance.
@@ -13,7 +10,7 @@ import { getVisibleCollectionByName } from '../utils.js'
  */
 export function addModesDefinitions(
   uc: UpdateConstructor,
-  tokens: TypedCentralCollections,
+  tokens: TypedVDCollections,
 ) {
   const figmaTokens = uc.getFigmaTokens()
   for (const collectionLabel in tokens) {
@@ -47,7 +44,7 @@ Central collections: ${Object.keys(tokens).join(', ')}`,
  * @returns {Object} - An object containing the modes only present in the central collection.
  */
 function generateModeSets(
-  central: TypedCentralCollection,
+  central: TypedVDCollection,
   figma: FigmaCollection,
 ): { onlyInCentral: Set<string> } {
   const figmaModes = new Set(figma.collection.modes.map((m) => m.name))

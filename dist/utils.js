@@ -1,6 +1,7 @@
 import Config from './Config.js';
 import { customParse, formatHex8 } from './color.js';
 import { createHash } from 'crypto';
+import { extractVdReference } from './vd.js';
 const FIGMA_API_ENDPOINT = 'https://api.figma.com';
 export const FigmaAPIURLs = {
     getLocalVariables: (fileId) => `${FIGMA_API_ENDPOINT}/v1/files/${fileId}/variables/local`,
@@ -84,29 +85,11 @@ export function determineResolvedType(value) {
     }
     throw new Error(`Could not determine type for value: ${JSON.stringify(value)}`);
 }
-const ALIAS_REGEX = /{([^$]+)\$([^}]+)}/;
-export function isCentralAlias(value) {
-    if (typeof value !== 'string')
-        return false;
-    return ALIAS_REGEX.test(value);
-}
-export function extractAliasParts(value) {
-    if (typeof value !== 'string')
-        return null;
-    const match = ALIAS_REGEX.exec(value);
-    if (match) {
-        return {
-            collection: match[1],
-            variable: match[2],
-        };
-    }
-    return null;
-}
 export function determineResolvedTypeWithAlias(collections, value, fileVariables) {
     const resolvedType = determineResolvedType(value);
     if (resolvedType !== 'STRING')
         return resolvedType;
-    const aliasParts = extractAliasParts(value);
+    const aliasParts = extractVdReference(value);
     if (aliasParts) {
         const { collection, variable } = aliasParts;
         if (collections[collection]?.[variable]) {

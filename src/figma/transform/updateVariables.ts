@@ -1,21 +1,21 @@
 import { VariableAlias } from '@figma/rest-api-spec'
 import UpdateConstructor from '../UpdateConstructor.js'
+import { rgb } from 'culori'
+import { customParse } from '../../color.js'
+import { FigmaVariableData } from '../types.js'
 import {
-  isFigmaAlias,
-  culoriToFigma,
-  figmaToCulori,
   SYMBOL_RESOLVED_TYPE,
-  isCentralAlias,
+  culoriToFigma,
+  isFigmaAlias,
+  figmaToCulori,
   compareColors,
-} from '../utils.js'
-
+} from '../../utils.js'
 import {
-  FigmaVariableData,
-  TypedCentralCollections,
-  TypedCentralVariable,
-} from '../types.js'
-
-import { customParse, rgb } from '../color.js'
+  isVdReference,
+  TypedVDCollections,
+  TypedVDVariable,
+  VDVariableValue,
+} from '../../vd.js'
 
 /**
  * Updates the variable values if central values don't match the Figma values.
@@ -24,7 +24,7 @@ import { customParse, rgb } from '../color.js'
  */
 export function updateVariables(
   uc: UpdateConstructor,
-  tokens: TypedCentralCollections,
+  tokens: TypedVDCollections,
 ) {
   for (const collectionName in tokens) {
     // iterate over all values in the current collection
@@ -55,11 +55,11 @@ export function updateVariables(
         }
 
         // TYPE 1: The central value is an alias
-        if (isCentralAlias(centralValue)) {
-          const resolvedAlias = uc.resolveCentralAlias(centralValue as string)
+        if (isVdReference(centralValue)) {
+          const resolvedAlias = uc.resolveVdReference(centralValue as string)
           if (!resolvedAlias)
             throw new Error(
-              `When resolving alias '${centralValue}' in collection '${collectionName}', the alias could not be found`,
+              `When resolving alias '${JSON.stringify(centralValue)}' in collection '${collectionName}', the alias could not be found`,
             )
           uc.setVariableAlias(
             figmaVariableData.info.id,
@@ -77,7 +77,7 @@ export function updateVariables(
           // the central value one has to be valid, since its our source of truth
           if (parsedColor === undefined) {
             throw new Error(
-              `When updating variables: Invalid central color value: ${centralValue} for token ${variableName} in collection ${collectionName}`,
+              `When updating variables: Invalid central color value: ${JSON.stringify(centralValue)} for token ${variableName} in collection ${collectionName}`,
             )
           }
           // now we just set the value to the figma variable
@@ -93,7 +93,7 @@ export function updateVariables(
         uc.setVariableValue(
           figmaVariableData.info.id,
           figmaVariableData.modeId,
-          centralValue,
+          centralValue as boolean | number | string,
         )
       }
     }
@@ -102,24 +102,24 @@ export function updateVariables(
 
 function checkIfUpdateRequired(
   figmaVariableData: FigmaVariableData,
-  centralValue: string | number | boolean,
+  centralValue: VDVariableValue,
   uc: UpdateConstructor,
-  centralValues: TypedCentralVariable,
+  centralValues: TypedVDVariable,
 ) {
   let requiresUpdate = figmaVariableData.value === undefined
 
   // if either of them is a variable and the other is not, we need to update
   if (!requiresUpdate) {
-    const isCentralValueAlias = isCentralAlias(centralValue)
+    const isCentralValueAlias = isVdReference(centralValue)
     const isFigmaValueAlias = isFigmaAlias(figmaVariableData.value)
     if (isCentralValueAlias !== isFigmaValueAlias) {
       requiresUpdate = true
 
       // if both are variables, we need to check if they are the same
     } else if (isCentralValueAlias && isFigmaValueAlias) {
-      const resolveCentralAlias = uc.resolveCentralAlias(centralValue as string)
+      const resolveVdReference = uc.resolveVdReference(centralValue as string)
       if (
-        resolveCentralAlias.id !== (figmaVariableData.value as VariableAlias).id
+        resolveVdReference.id !== (figmaVariableData.value as VariableAlias).id
       ) {
         requiresUpdate = true
       }

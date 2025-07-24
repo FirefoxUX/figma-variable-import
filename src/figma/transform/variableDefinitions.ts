@@ -1,10 +1,10 @@
-import UpdateConstructor from '../UpdateConstructor.js'
+import { FigmaCollection } from '../types.js'
 import {
-  CentralCollection,
-  FigmaCollection,
-  TypedCentralCollections,
-} from '../types.js'
-import { getVisibleCollectionByName, SYMBOL_RESOLVED_TYPE } from '../utils.js'
+  getVisibleCollectionByName,
+  SYMBOL_RESOLVED_TYPE,
+} from '../../utils.js'
+import { TypedVDCollections, VDCollection } from '../../vd.js'
+import UpdateConstructor from '../UpdateConstructor.js'
 
 /**
  * Updates the variable definitions based on the provided UpdateConstructor.
@@ -15,7 +15,7 @@ import { getVisibleCollectionByName, SYMBOL_RESOLVED_TYPE } from '../utils.js'
  */
 export function updateVariableDefinitions(
   uc: UpdateConstructor,
-  tokens: TypedCentralCollections,
+  tokens: TypedVDCollections,
   handleDeprecation = false,
 ) {
   const figmaTokens = uc.getFigmaTokens()
@@ -119,7 +119,7 @@ function potentiallyRemoveDeprecated(description: string) {
  * @returns {Object} - An object containing sets of variables that are only in the central collection, only in the Figma collection, and in both collections.
  */
 function generateVariableSets(
-  central: CentralCollection,
+  central: VDCollection,
   figma: FigmaCollection,
 ): {
   onlyInCentral: Set<string>

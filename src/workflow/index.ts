@@ -1,10 +1,10 @@
 import { VariableCreate } from '@figma/rest-api-spec'
-import { FigmaCollections, FigmaVariableValue } from '../types.js'
-import { ExtraStats } from '../UpdateConstructor.js'
+import { FigmaCollections, FigmaVariableValue } from '../figma/types.js'
 import { figmaToCulori, getMemoStats, isFigmaAlias, roundTo } from '../utils.js'
 import { summary } from './summary.js'
 import Config from '../Config.js'
 import { formatHex } from '../color.js'
+import { ExtraStats } from '../figma/UpdateConstructor.js'
 
 type InfoBoxMessage = {
   type: 'note' | 'tip' | 'important' | 'warning' | 'caution'

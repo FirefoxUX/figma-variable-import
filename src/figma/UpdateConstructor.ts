@@ -9,24 +9,19 @@ import {
   VariableModeValue,
   VariableUpdate,
 } from '@figma/rest-api-spec'
+import { inspect } from 'util'
 import {
-  CentralCollections,
-  FigmaCollections,
-  FigmaResultCollection,
   FigmaVariableValue,
+  FigmaResultCollection,
+  FigmaCollections,
 } from './types.js'
 import {
-  FigmaAPIURLs,
-  extractAliasParts,
   fetchFigmaAPI,
-  getCollectionsByName,
+  FigmaAPIURLs,
   getVisibleCollectionByName,
-} from './utils.js'
-import { addModesDefinitions } from './transform/modeDefinitions.js'
-import { updateVariableDefinitions } from './transform/variableDefinitions.js'
-import { updateVariables } from './transform/updateVariables.js'
-import { inferResolvedTypes } from './inferResolvedTypes.js'
-import { inspect } from 'util'
+  getCollectionsByName,
+} from '../utils.js'
+import { extractVdReference } from '../vd.js'
 
 export type ExtraStats = {
   variablesDeprecated: { collection: string; variable: string }[]
@@ -50,7 +45,17 @@ export type ExtraStats = {
 }
 
 /**
- * This class is used to keep track of changes that need to be submitted to the Figma API.
+ * Manages the construction and submission of updates to Figma variables, collections, and modes.
+ *
+ * The `UpdateConstructor` class tracks changes to Figma tokens, prepares mutation requests,
+ * and provides statistics about the performed operations. It supports creating variables and modes,
+ * updating variable values and aliases, and submitting changes to the Figma API.
+ *
+ * @remarks
+ * - The class is initialized with the current state of Figma tokens
+ * - Any changes made to the original state are tracked to be submitted later.
+ * - Provides methods to create new variables and modes, update existing ones, and set variable values or aliases.
+ * - There are methods to retrieve information about collections, variables, and modes that reflect changes too.
  */
 class UpdateConstructor {
   private readonly fileId: string
@@ -85,12 +90,9 @@ class UpdateConstructor {
     }
   }
 
-  getChanges() {
-    return this.changes
-  }
-  getStats() {
-    return this.extraStats
-  }
+  // -------
+  // Getters
+  // -------
 
   hasChanges() {
     return Object.keys(this.changes).some(
@@ -98,55 +100,136 @@ class UpdateConstructor {
     )
   }
 
+  getChanges() {
+    return this.changes
+  }
+
+  getStats() {
+    return this.extraStats
+  }
+
+  getModeId(collectionLabel: string, modeName: string) {
+    const variableCollections = getCollectionsByName(
+      this.figmaTokens,
+      collectionLabel,
+    )
+
+    for (const c of variableCollections) {
+      const result = c.collection.modes.find((m) => {
+        return m.name === modeName
+      })?.modeId
+
+      if (result) {
+        return result
+      }
+    }
+
+    return undefined
+  }
+
+  getVariable(collectionLabel: string, variableName: string) {
+    const variableCollections = getCollectionsByName(
+      this.figmaTokens,
+      collectionLabel,
+    )
+
+    for (const collection of variableCollections) {
+      const variable = collection.variables.find((v) => v.name === variableName)
+      if (variable) {
+        return variable
+      }
+    }
+
+    return undefined
+  }
+
   getFigmaTokens(): Readonly<FigmaCollections> {
     return this.figmaTokens
   }
 
-  getTempId() {
-    return `tempId${this.idCounter++}`
+  getFileVariables(): Readonly<FigmaResultCollection> {
+    return this.fileVariables
   }
 
-  async submitChanges(dryRun: boolean) {
-    const changes = Object.fromEntries(
-      Object.entries(this.changes).filter(([, value]) => value.length > 0),
-    )
-    const noChanges = Object.keys(changes).length === 0
-    this.extraStats.emptyChangeset = noChanges
+  // -------
+  // Query methods
+  // -------
 
-    if (dryRun) {
-      console.info('Dry run: No changes to submit')
-      return
-    }
-
-    if (noChanges) {
-      console.info('No changes to submit')
-      return
-    }
-
-    console.info(
-      'Submitting changes:',
-      inspect(changes, { depth: null, colors: true }),
-    )
-
-    try {
-      const result = await fetchFigmaAPI<PostVariablesResponse>(
-        FigmaAPIURLs.postVariables(this.fileId),
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(changes),
-        },
+  resolveVdReference(vdAlias: string): LocalVariable {
+    const aliasParts = extractVdReference(vdAlias)
+    if (!aliasParts) {
+      throw new Error(
+        `When resolving alias '${vdAlias}', the alias could not be parsed`,
       )
-      this.extraStats.result = result
-    } catch (error) {
-      this.extraStats.result =
-        typeof error === 'string'
-          ? error
-          : `${(error as Error).message}\n\n${(error as Error).stack}`
+    }
+
+    const { collection: collectionName, variable } = aliasParts
+    const collections = getCollectionsByName(this.figmaTokens, collectionName)
+
+    for (const c of collections) {
+      const resolvedVariable = c.variables.find((v) => v.name === variable)
+
+      if (resolvedVariable) {
+        return resolvedVariable
+      }
+    }
+
+    if (this.fileVariables[collectionName]) {
+      const figmaVariable = this.fileVariables[collectionName][variable]
+      if (figmaVariable && 'id' in figmaVariable) {
+        return {
+          ...figmaVariable,
+          id: figmaVariable.subscribed_id,
+        } as unknown as LocalVariable
+      }
+    }
+
+    throw new Error(
+      `When resolving alias '${vdAlias}', the alias could not be found in the figma tokens`,
+    )
+  }
+
+  private reverseSearchVariableInfo(variableId: string, modeId: string) {
+    let collectionName,
+      variableName,
+      modeName,
+      currentValue: FigmaVariableValue | null = null,
+      resolvedType: VariableCreate['resolvedType'] | null = null
+    for (const { collection, variables } of Object.values(this.figmaTokens)) {
+      const variable = variables.find((v) => v.id === variableId)
+      if (variable) {
+        collectionName = collection.name
+        variableName = variable.name
+        modeName = collection.modes.find((m) => m.modeId === modeId)?.name
+        currentValue = variable.valuesByMode[modeId]
+        resolvedType = variable.resolvedType
+        break
+      }
+    }
+    // if any of them are undefined, throw an error
+    if (
+      !collectionName ||
+      !variableName ||
+      !modeName ||
+      currentValue === null ||
+      resolvedType === null
+    ) {
+      throw new Error(
+        `When updating variable values: Could not find the collection, variable or mode for variable id '${variableId}' and mode id '${modeId}'`,
+      )
+    }
+    return {
+      collectionName,
+      variableName,
+      modeName,
+      currentValue,
+      resolvedType,
     }
   }
+
+  // -------
+  // Mutation methods
+  // -------
 
   createVariable(
     name: string,
@@ -278,44 +361,6 @@ class UpdateConstructor {
     })
   }
 
-  private reverseSearchVariableInfo(variableId: string, modeId: string) {
-    let collectionName,
-      variableName,
-      modeName,
-      currentValue: FigmaVariableValue | null = null,
-      resolvedType: VariableCreate['resolvedType'] | null = null
-    for (const { collection, variables } of Object.values(this.figmaTokens)) {
-      const variable = variables.find((v) => v.id === variableId)
-      if (variable) {
-        collectionName = collection.name
-        variableName = variable.name
-        modeName = collection.modes.find((m) => m.modeId === modeId)?.name
-        currentValue = variable.valuesByMode[modeId]
-        resolvedType = variable.resolvedType
-        break
-      }
-    }
-    // if any of them are undefined, throw an error
-    if (
-      !collectionName ||
-      !variableName ||
-      !modeName ||
-      currentValue === null ||
-      resolvedType === null
-    ) {
-      throw new Error(
-        `When updating variable values: Could not find the collection, variable or mode for variable id '${variableId}' and mode id '${modeId}'`,
-      )
-    }
-    return {
-      collectionName,
-      variableName,
-      modeName,
-      currentValue,
-      resolvedType,
-    }
-  }
-
   setVariableAlias(variableId: string, modeId: string, aliasId: string) {
     const obj: VariableModeValue = {
       variableId,
@@ -343,8 +388,6 @@ class UpdateConstructor {
     })
   }
 
-  // -------
-
   addDeprecationStat(
     collection: string,
     variable: string,
@@ -357,92 +400,60 @@ class UpdateConstructor {
     }
   }
 
+  async submitChanges(dryRun: boolean) {
+    const changes = Object.fromEntries(
+      Object.entries(this.changes).filter(([, value]) => value.length > 0),
+    )
+    const noChanges = Object.keys(changes).length === 0
+    this.extraStats.emptyChangeset = noChanges
+
+    if (dryRun) {
+      console.info('Dry run: No changes to submit')
+      return
+    }
+
+    if (noChanges) {
+      console.info('No changes to submit')
+      return
+    }
+
+    console.info(
+      'Submitting changes:',
+      inspect(changes, { depth: null, colors: true }),
+    )
+
+    try {
+      const result = await fetchFigmaAPI<PostVariablesResponse>(
+        FigmaAPIURLs.postVariables(this.fileId),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(changes),
+        },
+      )
+      this.extraStats.result = result
+    } catch (error) {
+      this.extraStats.result =
+        typeof error === 'string'
+          ? error
+          : `${(error as Error).message}\n\n${(error as Error).stack}`
+    }
+  }
+
+  // -------
+  // Helper methods
   // -------
 
-  getModeId(collectionLabel: string, modeName: string) {
-    const variableCollections = getCollectionsByName(
-      this.figmaTokens,
-      collectionLabel,
-    )
-
-    for (const c of variableCollections) {
-      const result = c.collection.modes.find((m) => {
-        return m.name === modeName
-      })?.modeId
-
-      if (result) {
-        return result
-      }
-    }
-
-    return undefined
-  }
-
-  getVariable(collectionLabel: string, variableName: string) {
-    const variableCollections = getCollectionsByName(
-      this.figmaTokens,
-      collectionLabel,
-    )
-
-    for (const collection of variableCollections) {
-      const variable = collection.variables.find((v) => v.name === variableName)
-      if (variable) {
-        return variable
-      }
-    }
-
-    return undefined
-  }
-
-  resolveCentralAlias(centralAlias: string): LocalVariable {
-    const aliasParts = extractAliasParts(centralAlias)
-    if (!aliasParts) {
-      throw new Error(
-        `When resolving alias '${centralAlias}', the alias could not be parsed`,
-      )
-    }
-
-    const { collection: collectionName, variable } = aliasParts
-    const collections = getCollectionsByName(this.figmaTokens, collectionName)
-
-    for (const c of collections) {
-      const resolvedVariable = c.variables.find((v) => v.name === variable)
-
-      if (resolvedVariable) {
-        return resolvedVariable
-      }
-    }
-
-    if (this.fileVariables[collectionName]) {
-      const figmaVariable = this.fileVariables[collectionName][variable]
-      if (figmaVariable && 'id' in figmaVariable) {
-        return {
-          ...figmaVariable,
-          id: figmaVariable.subscribed_id,
-        } as unknown as LocalVariable
-      }
-    }
-
-    throw new Error(
-      `When resolving alias '${centralAlias}', the alias could not be found in the figma tokens`,
-    )
-  }
-
-  constructUpdate(
-    colorsCollections: CentralCollections,
-    handleDeprecation = false,
-  ) {
-    // Infer the resolved types of the collections
-    const inferredC = inferResolvedTypes(colorsCollections, this.fileVariables)
-
-    // Iterate over collections and add missing modes
-    addModesDefinitions(this, inferredC)
-
-    //Iterate over collections and add missing variables
-    updateVariableDefinitions(this, inferredC, handleDeprecation)
-
-    // STEP 4: Update the values of the variables
-    updateVariables(this, inferredC)
+  /**
+   * Generates and returns a unique temporary ID string.
+   * The ID is constructed by prefixing "tempId" to an incrementing counter.
+   *
+   * @returns {string} A unique temporary ID.
+   */
+  private getTempId() {
+    return `tempId${this.idCounter++}`
   }
 }
 

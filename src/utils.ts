@@ -4,11 +4,11 @@ import {
   FigmaCollections,
   FigmaResponseWrapper,
   FigmaResultCollection,
-  TypedCentralCollections,
-} from './types.js'
+} from './figma/types.js'
 import Config from './Config.js'
 import { Color, customParse, formatHex8, type Rgb } from './color.js'
 import { createHash } from 'crypto'
+import { extractVdReference, TypedVDCollections } from './vd.js'
 
 const FIGMA_API_ENDPOINT = 'https://api.figma.com'
 
@@ -130,36 +130,15 @@ export function determineResolvedType(
   )
 }
 
-const ALIAS_REGEX = /{([^$]+)\$([^}]+)}/
-
-export function isCentralAlias(value: string | number | boolean): boolean {
-  if (typeof value !== 'string') return false
-  return ALIAS_REGEX.test(value)
-}
-
-export function extractAliasParts(
-  value: string | number | boolean,
-): { collection: string; variable: string } | null {
-  if (typeof value !== 'string') return null
-  const match = ALIAS_REGEX.exec(value)
-  if (match) {
-    return {
-      collection: match[1],
-      variable: match[2],
-    }
-  }
-  return null
-}
-
 export function determineResolvedTypeWithAlias(
-  collections: TypedCentralCollections,
+  collections: TypedVDCollections,
   value: string | number | boolean | Rgb,
   fileVariables?: FigmaResultCollection,
 ): VariableCreate['resolvedType'] | null {
   const resolvedType = determineResolvedType(value)
   if (resolvedType !== 'STRING') return resolvedType
 
-  const aliasParts = extractAliasParts(value as string)
+  const aliasParts = extractVdReference(value as string)
   if (aliasParts) {
     const { collection, variable } = aliasParts
     if (collections[collection]?.[variable]) {

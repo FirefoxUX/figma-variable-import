@@ -1,25 +1,17 @@
-import { GetLocalVariablesResponse } from '@figma/rest-api-spec'
-import { getAndroidModes } from './android.js'
-import { getCentralCollectionValues } from './central-import.js'
+import { getAndroidModes } from './mozilla/android.js'
+import { getCentralCollectionValues } from './mozilla/central-import.js'
 import Config from './Config.js'
 import { HCM_MAP } from './imports.js'
-import { normalizeFigmaTokens } from './normalizeFigmaTokens.js'
-import { constructRelativeData } from './relative-transform.js'
-import { CentralCollections } from './types.js'
-import UpdateConstructor from './UpdateConstructor.js'
-import { memoize, fetchFigmaAPI, FigmaAPIURLs } from './utils.js'
+import { constructRelativeData } from './mozilla/relative-transform.js'
+import { memoize, FigmaAPIURLs } from './utils.js'
+import { getFigmaCollections, submitVDCollections } from './figma/index.js'
+import { VDCollections } from './vd.js'
 
 // ----
 // Memoized functions
 // ----
 
-const memoGetFigmaTokensFromFile = memoize(
-  (url: string) =>
-    fetchFigmaAPI<GetLocalVariablesResponse>(url).then(({ meta }) =>
-      normalizeFigmaTokens(meta),
-    ),
-  'fetchFigmaAPI',
-)
+const memoGetFigmaTokensFromFile = memoize(getFigmaCollections, 'fetchFigmaAPI')
 const memoGetCentralCollectionValues = memoize(getCentralCollectionValues)
 
 // ----
@@ -32,26 +24,27 @@ export default [
     name: 'Central tokens to desktop styles',
     action: async () => {
       const figmaTokens = await memoGetFigmaTokensFromFile(
-        FigmaAPIURLs.getLocalVariables(Config.get('figmaIdDesktopStyles')),
+        Config.get('figmaIdDesktopStyles'),
       )
 
       const centralData = await memoGetCentralCollectionValues()
       const relativeData = constructRelativeData(centralData.relative)
 
-      const tokensCollections: CentralCollections = {
+      const tokensCollections: VDCollections = {
         'HCM Theme': HCM_MAP,
         ...centralData.central,
         ...relativeData,
       }
 
-      const ucTokens = new UpdateConstructor(
-        figmaTokens,
+      return submitVDCollections(
         Config.get('figmaIdDesktopStyles'),
+        figmaTokens,
+        tokensCollections,
+        {
+          handleDeprecation: true,
+          dryRun: Config.dryRun,
+        },
       )
-      ucTokens.constructUpdate(tokensCollections, true)
-      await ucTokens.submitChanges(Config.dryRun)
-
-      return ucTokens
     },
   },
 
@@ -60,23 +53,23 @@ export default [
     name: 'Import color palette to Firefox Colors',
     action: async () => {
       const figmaColorsTokens = await memoGetFigmaTokensFromFile(
-        FigmaAPIURLs.getLocalVariables(Config.get('figmaIdFirefoxColors')),
+        Config.get('figmaIdFirefoxColors'),
       )
       const centralData = await memoGetCentralCollectionValues()
 
-      const colorsCollections: CentralCollections = {
+      const colorsCollections: VDCollections = {
         Colors: centralData.central.Colors,
       }
 
-      const ucColor = new UpdateConstructor(
-        figmaColorsTokens,
+      return submitVDCollections(
         Config.get('figmaIdFirefoxColors'),
+        figmaColorsTokens,
+        colorsCollections,
+        {
+          handleDeprecation: true,
+          dryRun: Config.dryRun,
+        },
       )
-
-      ucColor.constructUpdate(colorsCollections, true)
-      await ucColor.submitChanges(Config.dryRun)
-
-      return ucColor
     },
   },
 
@@ -86,7 +79,7 @@ export default [
     action: async () => {
       // Get the Figma tokens from the file
       const figmaAndroidTokens = await memoGetFigmaTokensFromFile(
-        FigmaAPIURLs.getLocalVariables(Config.get('figmaIdAndroidComponents')),
+        Config.get('figmaIdAndroidComponents'),
       )
       // The Figma API does not always return all variables, so we need to
       // download the tokens from the file where colors come from as a fallback
@@ -96,15 +89,15 @@ export default [
 
       const collection = getAndroidModes(figmaAndroidTokens, figmaMobileColors)
 
-      const ucColor = new UpdateConstructor(
-        figmaAndroidTokens,
+      return submitVDCollections(
         Config.get('figmaIdAndroidComponents'),
+        figmaAndroidTokens,
+        collection,
+        {
+          handleDeprecation: false,
+          dryRun: Config.dryRun,
+        },
       )
-
-      ucColor.constructUpdate(collection)
-      await ucColor.submitChanges(Config.dryRun)
-
-      return ucColor
     },
   },
 ]

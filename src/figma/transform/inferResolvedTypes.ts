@@ -1,33 +1,31 @@
 import { VariableCreate } from '@figma/rest-api-spec'
-import {
-  CentralCollections,
-  FigmaResultCollection,
-  TypedCentralCollections,
-  TypedCentralVariable,
-} from './types.js'
+import UpdateConstructor from '../UpdateConstructor.js'
 import {
   determineResolvedTypeWithAlias,
   SYMBOL_RESOLVED_TYPE,
-} from './utils.js'
+} from '../../utils.js'
+import { TypedVDCollections, TypedVDVariable, VDCollections } from '../../vd.js'
 
 export function inferResolvedTypes(
-  centralTokens: CentralCollections,
-  fileVariables?: FigmaResultCollection,
-): TypedCentralCollections {
-  const typedCentralTokens: TypedCentralCollections = {}
+  uc: UpdateConstructor,
+  vdTokens: VDCollections,
+): TypedVDCollections {
+  const typedVdTokens: TypedVDCollections = {}
   let queue: Array<{ collectionName: string; variableName: string }> = []
+
+  const fileVariables = uc.getFileVariables()
 
   const resolveVariableTypes = (
     collectionName: string,
     variableName: string,
   ) => {
-    const variable = centralTokens[collectionName][variableName]
+    const variable = vdTokens[collectionName][variableName]
     let lastResolvedType: VariableCreate['resolvedType'] | undefined = undefined
 
     for (const mode in variable) {
       const value = variable[mode]
       const resolvedType = determineResolvedTypeWithAlias(
-        typedCentralTokens,
+        typedVdTokens,
         value,
         fileVariables,
       )
@@ -49,21 +47,21 @@ export function inferResolvedTypes(
       )
     }
 
-    const typedVariable: TypedCentralVariable = {
+    const typedVariable: TypedVDVariable = {
       ...variable,
       [SYMBOL_RESOLVED_TYPE]: lastResolvedType,
     }
 
-    if (!typedCentralTokens[collectionName]) {
-      typedCentralTokens[collectionName] = {}
+    if (!typedVdTokens[collectionName]) {
+      typedVdTokens[collectionName] = {}
     }
 
-    typedCentralTokens[collectionName][variableName] = typedVariable
+    typedVdTokens[collectionName][variableName] = typedVariable
   }
 
   // We go through all the collections
-  for (const collectionName in centralTokens) {
-    const collection = centralTokens[collectionName]
+  for (const collectionName in vdTokens) {
+    const collection = vdTokens[collectionName]
     for (const variableName in collection) {
       resolveVariableTypes(collectionName, variableName)
     }
@@ -94,5 +92,5 @@ export function inferResolvedTypes(
          If it is not possible to optimize the order anymore, you can remove this warning!`)
   }
 
-  return typedCentralTokens
+  return typedVdTokens
 }

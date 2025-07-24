@@ -8,7 +8,6 @@ class Config {
     figmaIdMobileStyles;
     centralCurrentColorAlias;
     centralSource;
-    figmaOnlyVariables;
     figmaAccessToken;
     slackWebhookUrlSuccess;
     slackWebhookUrlFailure;
@@ -37,7 +36,6 @@ class Config {
             process.env.INPUT_FIGMA_URL_MOBILE_STYLES);
         this.centralCurrentColorAlias = config.centralCurrentColorAlias;
         this.centralSource = config.centralSource;
-        this.figmaOnlyVariables = config.figmaOnlyVariables;
         this.figmaAccessToken =
             config.env.FIGMA_ACCESS_TOKEN || process.env.INPUT_FIGMA_ACCESS_TOKEN;
         this.slackWebhookUrlSuccess =
@@ -109,14 +107,6 @@ class Config {
             this.centralSource.primitives === undefined ||
             this.centralSource.theme === undefined) {
             throw new Error('Error loading config: centralSource is not valid');
-        }
-        if (this.figmaOnlyVariables !== undefined) {
-            if (!Array.isArray(this.figmaOnlyVariables)) {
-                throw new Error('Error loading config: figmaOnlyVariables is not an array');
-            }
-            if (!this.figmaOnlyVariables.every((v) => typeof v === 'string')) {
-                throw new Error('Error loading config: figmaOnlyVariables is not an array of strings');
-            }
         }
         if (this.figmaAccessToken === undefined) {
             throw new Error('Error loading config: figmaAccessToken is undefined');

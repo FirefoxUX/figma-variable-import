@@ -1,7 +1,7 @@
-import { customParse, Color, formatHex8 } from './color.js'
-import Config from './Config.js'
-import { THEME_MAP } from './imports.js'
-import { extractAliasParts } from './utils.js'
+import { customParse, Color, formatHex8 } from '../color.js'
+import Config from '../Config.js'
+import { THEME_MAP } from '../imports.js'
+import { extractVdReference } from '../vd.js'
 
 type RawPrimitiveValue = string | number | boolean
 type RawThemeValue =
@@ -213,7 +213,7 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
         const token = entry[1] as PrimitiveTokens | ThemeTokens
         const isRelative = (value: string) => {
           // first we check if its a reference to another token
-          const extracted = extractAliasParts(value)
+          const extracted = extractVdReference(value)
           if (extracted) {
             return relativeTokens[extracted.variable] !== undefined
           }
@@ -417,7 +417,7 @@ function centralFullResolve(
   let value = key
 
   while (true) {
-    const extracted = extractAliasParts(value)
+    const extracted = extractVdReference(value)
     if (!extracted) {
       return value
     }
