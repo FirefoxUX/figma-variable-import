@@ -8,6 +8,7 @@ border/color/default:
   Light: '#CFCFD8'
   Dark: '#3A3944'
   HCM: '{HCM Theme$CanvasText}'
+
 background/color/tabstrip:
   Light: 'F0F0F4'
   Dark: '1C1B22'
@@ -15,10 +16,6 @@ background/color/tabstrip:
 background/color/toolbar:
   Light: '#F9F9FB'
   Dark: '#2B2A33'
-  HCM: '{HCM Theme$Canvas}'
-background/color/tab:
-  Light: '{Colors$color/white}'
-  Dark: '#52525E'
   HCM: '{HCM Theme$Canvas}'
 background/color/canvas-v2:
   Light: '#F9F9FB'
@@ -28,7 +25,58 @@ background/color/backdrop:
   Light: 'rgba(0, 0, 0, 0.25)'
   Dark: 'rgba(0, 0, 0, 0.25)'
   HCM: 'rgba(0, 0, 0, 0.25)'
+
 color/accent/primary/deemphasized:
   Light: 'rgba(0, 98, 250, 0.08)'
   Dark: 'rgba(0, 202, 219, 0.08)'
   HCM: '{HCM Theme$SelectedItem}'
+
+# Tabs
+tab/background/color:
+  Light: '{Theme$button/background/color/ghost}'
+  Dark: '{Theme$button/background/color/ghost}'
+  HCM: '{HCM Theme$ButtonFace}'
+tab/background/color/hover:
+  Light: '{Theme$button/background/color/hover}'
+  Dark: '{Theme$button/background/color/hover}'
+  HCM: '{HCM Theme$Canvas}'
+tab/background/color/active:
+  Light: '{Colors$color/white}'
+  Dark: '#52525E'
+  HCM: '{HCM Theme$SelectedItem}'
+tab/border/color:
+  Light: 'transparent'
+  Dark: 'transparent'
+  HCM: '{HCM Theme$ButtonText}'
+tab/border/color/hover:
+  Light: 'transparent'
+  Dark: 'transparent'
+  HCM: '{HCM Theme$ButtonText}'
+tab/border/color/active:
+  Light: 'transparent'
+  Dark: 'transparent'
+  HCM: '{HCM Theme$ButtonText}'
+tab/text/color:
+  Light: '{Theme$text/color}'
+  Dark: '{Theme$text/color}'
+  HCM: '{HCM Theme$ButtonText}'
+tab/text/color/deemphasized:
+  Light: '{Theme$text/color/deemphasized}'
+  Dark: '{Theme$text/color/deemphasized}'
+  HCM: '{HCM Theme$ButtonText}'
+tab/text/color/hover:
+  Light: '{Theme$text/color}'
+  Dark: '{Theme$text/color}'
+  HCM: '{HCM Theme$SelectedItem}'
+tab/text/color/deemphasized/hover:
+  Light: '{Theme$text/color/deemphasized}'
+  Dark: '{Theme$text/color/deemphasized}'
+  HCM: '{HCM Theme$SelectedItem}'
+tab/text/color/active:
+  Light: '{Theme$text/color}'
+  Dark: '{Theme$text/color}'
+  HCM: '{HCM Theme$SelectedItemText}'
+tab/text/color/deemphasized/active:
+  Light: '{Theme$text/color/deemphasized}'
+  Dark: '{Theme$text/color/deemphasized}'
+  HCM: '{HCM Theme$SelectedItemText}'
