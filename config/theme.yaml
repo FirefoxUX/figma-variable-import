@@ -31,19 +31,21 @@ color/accent/primary/deemphasized:
   Dark: 'rgba(0, 202, 219, 0.08)'
   HCM: '{HCM Theme$SelectedItem}'
 
-# Tabs
+# BACKGROUND
 tab/background/color:
   Light: '{Theme$button/background/color/ghost}'
   Dark: '{Theme$button/background/color/ghost}'
-  HCM: '{HCM Theme$ButtonFace}'
+  HCM: 'transparent'
 tab/background/color/hover:
   Light: '{Theme$button/background/color/hover}'
   Dark: '{Theme$button/background/color/hover}'
-  HCM: '{HCM Theme$Canvas}'
+  HCM: 'transparent'
 tab/background/color/active:
   Light: '{Colors$color/white}'
   Dark: '#52525E'
-  HCM: '{HCM Theme$SelectedItem}'
+  HCM: '{HCM Theme$ButtonFace}'
+
+# BORDER
 tab/border/color:
   Light: 'transparent'
   Dark: 'transparent'
@@ -51,32 +53,34 @@ tab/border/color:
 tab/border/color/hover:
   Light: 'transparent'
   Dark: 'transparent'
-  HCM: '{HCM Theme$ButtonText}'
+  HCM: '{HCM Theme$SelectedItem}'
 tab/border/color/active:
   Light: 'transparent'
   Dark: 'transparent'
-  HCM: '{HCM Theme$ButtonText}'
+  HCM: '{HCM Theme$SelectedItem}'
+
+# TEXT
 tab/text/color:
   Light: '{Theme$text/color}'
   Dark: '{Theme$text/color}'
-  HCM: '{HCM Theme$ButtonText}'
+  HCM: '{HCM Theme$AccentColorText}'
 tab/text/color/deemphasized:
   Light: '{Theme$text/color/deemphasized}'
   Dark: '{Theme$text/color/deemphasized}'
-  HCM: '{HCM Theme$ButtonText}'
+  HCM: '{HCM Theme$AccentColorText}'
 tab/text/color/hover:
   Light: '{Theme$text/color}'
   Dark: '{Theme$text/color}'
-  HCM: '{HCM Theme$SelectedItem}'
+  HCM: '{HCM Theme$AccentColorText}'
 tab/text/color/deemphasized/hover:
   Light: '{Theme$text/color/deemphasized}'
   Dark: '{Theme$text/color/deemphasized}'
-  HCM: '{HCM Theme$SelectedItem}'
+  HCM: '{HCM Theme$AccentColorText}'
 tab/text/color/active:
   Light: '{Theme$text/color}'
   Dark: '{Theme$text/color}'
-  HCM: '{HCM Theme$SelectedItemText}'
+  HCM: '{HCM Theme$CanvasText}'
 tab/text/color/deemphasized/active:
   Light: '{Theme$text/color/deemphasized}'
   Dark: '{Theme$text/color/deemphasized}'
-  HCM: '{HCM Theme$SelectedItemText}'
+  HCM: '{HCM Theme$CanvasText}'

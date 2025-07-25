@@ -2,6 +2,7 @@ import { customParse, Color, formatHex8 } from '../color.js'
 import Config from '../Config.js'
 import { THEME_MAP } from '../imports.js'
 import { extractVdReference } from '../vd.js'
+import util from 'node:util'
 
 type RawPrimitiveValue = string | number | boolean
 type RawThemeValue =
@@ -39,9 +40,9 @@ type CentralAndRelativeTokens = {
 export async function getCentralCollectionValues(): Promise<CentralAndRelativeTokens> {
   const result = await downloadFromCentral()
     .then(normalizeNames)
+    .then(mergeStaticTokens)
     .then(replaceTextColor)
     .then(filterRelativeUnits)
-    .then(mergeStaticTokens)
 
   return result
 }
@@ -140,8 +141,13 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
     if (value === 'currentColor') {
       return Config.centralCurrentColorAlias
     }
-    if ((mode === 'Light' || mode === 'Dark') && colorMixTf.isColorMix(value)) {
-      return colorMixTf.replaceColorMix(mode, value)
+    if (colorMixTf.isColorMix(value)) {
+      if (mode === 'Light' || mode === 'Dark') {
+        return colorMixTf.replaceColorMix(mode, value)
+      }
+      throw new Error(
+        `When trying to replace color mix: Color mix '${value}' is not supported in mode '${mode}'`,
+      )
     }
     return value
   }
@@ -179,18 +185,12 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
   return tokens
 }
 
-function mergeStaticTokens(
-  tokens: CentralAndRelativeTokens,
-): CentralAndRelativeTokens {
-  const mergedTheme = {
-    ...THEME_MAP,
-    ...tokens.central.Theme,
-  }
+function mergeStaticTokens(tokens: CentralTokens): CentralTokens {
   return {
     ...tokens,
-    central: {
-      ...tokens.central,
-      Theme: mergedTheme,
+    Theme: {
+      ...THEME_MAP,
+      ...tokens.Theme,
     },
   }
 }

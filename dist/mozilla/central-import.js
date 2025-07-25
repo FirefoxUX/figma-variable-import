@@ -5,9 +5,9 @@ import { extractVdReference } from '../vd.js';
 export async function getCentralCollectionValues() {
     const result = await downloadFromCentral()
         .then(normalizeNames)
+        .then(mergeStaticTokens)
         .then(replaceTextColor)
-        .then(filterRelativeUnits)
-        .then(mergeStaticTokens);
+        .then(filterRelativeUnits);
     return result;
 }
 async function downloadFromCentral() {
@@ -69,8 +69,11 @@ function replaceTextColor(tokens) {
         if (value === 'currentColor') {
             return Config.centralCurrentColorAlias;
         }
-        if ((mode === 'Light' || mode === 'Dark') && colorMixTf.isColorMix(value)) {
-            return colorMixTf.replaceColorMix(mode, value);
+        if (colorMixTf.isColorMix(value)) {
+            if ((mode === 'Light' || mode === 'Dark')) {
+                return colorMixTf.replaceColorMix(mode, value);
+            }
+            throw new Error(`When trying to replace color mix: Color mix '${value}' is not supported in mode '${mode}'`);
         }
         return value;
     };
@@ -98,15 +101,11 @@ function replaceTextColor(tokens) {
     return tokens;
 }
 function mergeStaticTokens(tokens) {
-    const mergedTheme = {
-        ...THEME_MAP,
-        ...tokens.central.Theme,
-    };
     return {
         ...tokens,
-        central: {
-            ...tokens.central,
-            Theme: mergedTheme,
+        Theme: {
+            ...THEME_MAP,
+            ...tokens.Theme,
         },
     };
 }
