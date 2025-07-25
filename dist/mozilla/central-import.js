@@ -70,7 +70,7 @@ function replaceTextColor(tokens) {
             return Config.centralCurrentColorAlias;
         }
         if (colorMixTf.isColorMix(value)) {
-            if ((mode === 'Light' || mode === 'Dark')) {
+            if (mode === 'Light' || mode === 'Dark') {
                 return colorMixTf.replaceColorMix(mode, value);
             }
             throw new Error(`When trying to replace color mix: Color mix '${value}' is not supported in mode '${mode}'`);

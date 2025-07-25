@@ -2,7 +2,6 @@ import { customParse, Color, formatHex8 } from '../color.js'
 import Config from '../Config.js'
 import { THEME_MAP } from '../imports.js'
 import { extractVdReference } from '../vd.js'
-import util from 'node:util'
 
 type RawPrimitiveValue = string | number | boolean
 type RawThemeValue =

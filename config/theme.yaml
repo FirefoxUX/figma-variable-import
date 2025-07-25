@@ -31,6 +31,7 @@ color/accent/primary/deemphasized:
   Dark: 'rgba(0, 202, 219, 0.08)'
   HCM: '{HCM Theme$SelectedItem}'
 
+### Tabs
 # BACKGROUND
 tab/background/color:
   Light: '{Theme$button/background/color/ghost}'
@@ -44,7 +45,10 @@ tab/background/color/active:
   Light: '{Colors$color/white}'
   Dark: '#52525E'
   HCM: '{HCM Theme$ButtonFace}'
-
+tab/background/color/pinned:
+  Light: '{Theme$button/background/color}'
+  Dark: '{Theme$button/background/color}'
+  HCM: 'transparent'
 # BORDER
 tab/border/color:
   Light: 'transparent'
@@ -58,7 +62,6 @@ tab/border/color/active:
   Light: 'transparent'
   Dark: 'transparent'
   HCM: '{HCM Theme$SelectedItem}'
-
 # TEXT
 tab/text/color:
   Light: '{Theme$text/color}'
