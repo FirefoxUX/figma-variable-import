@@ -1,4 +1,16 @@
 ---
+badge/background/color:
+  Light: 'transparent'
+  Dark: 'transparent'
+  HCM: '{HCM Theme$Canvas}'
+badge/border/color:
+  Light: 'rgba(255, 255, 255, 0.40)'
+  Dark: 'rgba(21, 20, 26, 0.40)'
+  HCM: '{HCM Theme$CanvasText}'
+badge/filled/background/color:
+  Light: '{Colors$color/green/70}'
+  Dark: '{Colors$color/green/40}'
+  HCM: '{HCM Theme$AccentColor}'
 
 border/color/overlay:
   Light: '#F0F0F4'
