@@ -3,7 +3,7 @@ import { getCentralCollectionValues } from './mozilla/central-import.js';
 import Config from './Config.js';
 import { HCM_MAP } from './imports.js';
 import { constructRelativeData } from './mozilla/relative-transform.js';
-import { memoize, FigmaAPIURLs } from './utils.js';
+import { memoize } from './utils.js';
 import { getFigmaCollections, submitVDCollections } from './figma/index.js';
 const memoGetFigmaTokensFromFile = memoize(getFigmaCollections, 'fetchFigmaAPI');
 const memoGetCentralCollectionValues = memoize(getCentralCollectionValues);
@@ -46,7 +46,7 @@ export default [
         name: 'Update Android M3 modes',
         action: async () => {
             const figmaAndroidTokens = await memoGetFigmaTokensFromFile(Config.get('figmaIdAndroidComponents'));
-            const figmaMobileColors = await memoGetFigmaTokensFromFile(FigmaAPIURLs.getLocalVariables(Config.get('figmaIdMobileStyles')));
+            const figmaMobileColors = await memoGetFigmaTokensFromFile(Config.get('figmaIdMobileStyles'));
             const collection = getAndroidModes(figmaAndroidTokens, figmaMobileColors);
             return submitVDCollections(Config.get('figmaIdAndroidComponents'), figmaAndroidTokens, collection, {
                 handleDeprecation: false,

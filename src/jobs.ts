@@ -3,7 +3,7 @@ import { getCentralCollectionValues } from './mozilla/central-import.js'
 import Config from './Config.js'
 import { HCM_MAP } from './imports.js'
 import { constructRelativeData } from './mozilla/relative-transform.js'
-import { memoize, FigmaAPIURLs } from './utils.js'
+import { memoize } from './utils.js'
 import { getFigmaCollections, submitVDCollections } from './figma/index.js'
 import { VDCollections } from './vd.js'
 
@@ -84,7 +84,7 @@ export default [
       // The Figma API does not always return all variables, so we need to
       // download the tokens from the file where colors come from as a fallback
       const figmaMobileColors = await memoGetFigmaTokensFromFile(
-        FigmaAPIURLs.getLocalVariables(Config.get('figmaIdMobileStyles')),
+        Config.get('figmaIdMobileStyles'),
       )
 
       const collection = getAndroidModes(figmaAndroidTokens, figmaMobileColors)
