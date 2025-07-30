@@ -4,8 +4,8 @@ badge/background/color:
   Dark: 'transparent'
   HCM: '{HCM Theme$Canvas}'
 badge/border/color:
-  Light: 'rgba(255, 255, 255, 0.40)'
-  Dark: 'rgba(21, 20, 26, 0.40)'
+  Light: 'rgba(21, 20, 26, 0.40)'
+  Dark: 'rgba(251, 251, 254, 0.40)'
   HCM: '{HCM Theme$CanvasText}'
 badge/filled/background/color:
   Light: '{Colors$color/green/70}'
