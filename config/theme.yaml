@@ -11,6 +11,10 @@ badge/filled/background/color:
   Light: '{Colors$color/green/70}'
   Dark: '{Colors$color/green/40}'
   HCM: '{HCM Theme$AccentColor}'
+badge/filled/border/color:
+  Light: 'rgba(251, 251, 254, 0.40)'
+  Dark: 'rgba(21, 20, 26, 0.40)'
+  HCM: '{HCM Theme$CanvasText}'
 
 border/color/overlay:
   Light: '#F0F0F4'
