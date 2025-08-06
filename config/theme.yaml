@@ -37,6 +37,10 @@ background/color/canvas-v2:
   Light: '#F9F9FB'
   Dark: '#1C1B22'
   HCM: '{HCM Theme$Canvas}'
+background/color/panel:
+  Light: '{Theme$background/color/canvas-v2}'
+  Dark: '#42414D'
+  HCM: '{Theme$background/color/canvas-v2}'
 background/color/backdrop:
   Light: 'rgba(0, 0, 0, 0.25)'
   Dark: 'rgba(0, 0, 0, 0.25)'
@@ -48,7 +52,7 @@ color/accent/primary/deemphasized:
   HCM: '{HCM Theme$SelectedItem}'
 
 ### Tabs
-# BACKGROUND
+# Background
 tab/background/color:
   Light: '{Theme$button/background/color/ghost}'
   Dark: '{Theme$button/background/color/ghost}'
@@ -65,7 +69,7 @@ tab/background/color/pinned:
   Light: '{Theme$button/background/color}'
   Dark: '{Theme$button/background/color}'
   HCM: 'transparent'
-# BORDER
+# Border
 tab/border/color:
   Light: 'transparent'
   Dark: 'transparent'
@@ -78,7 +82,7 @@ tab/border/color/active:
   Light: 'transparent'
   Dark: 'transparent'
   HCM: '{HCM Theme$SelectedItem}'
-# TEXT
+# Text
 tab/text/color:
   Light: '{Theme$text/color}'
   Dark: '{Theme$text/color}'
