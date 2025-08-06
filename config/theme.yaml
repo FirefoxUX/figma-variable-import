@@ -38,9 +38,9 @@ background/color/canvas-v2:
   Dark: '#1C1B22'
   HCM: '{HCM Theme$Canvas}'
 background/color/panel:
-  Light: '{Theme$background/color/canvas-v2}'
+  Light: '{Theme$background/color/box}'
   Dark: '#42414D'
-  HCM: '{Theme$background/color/canvas-v2}'
+  HCM: '{Theme$background/color/box}'
 background/color/backdrop:
   Light: 'rgba(0, 0, 0, 0.25)'
   Dark: 'rgba(0, 0, 0, 0.25)'
