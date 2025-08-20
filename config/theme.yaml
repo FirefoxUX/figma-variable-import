@@ -47,6 +47,14 @@ color/accent/primary/deemphasized:
   Dark: 'rgba(0, 202, 219, 0.08)'
   HCM: '{HCM Theme$SelectedItem}'
 
+promo/background/color:
+  Light: 'rgba(21, 20, 26, 0.04)'
+  Dark: 'rgba(251, 251, 254, 0.04)'
+  HCM: '{HCM Theme$Canvas}'
+promo/border/color:
+  Light: 'rgba(21, 20, 26, 0.12)'
+  Dark: 'rgba(251, 251, 254, 0.12)'
+  HCM: '{HCM Theme$CanvasText}'
 ### Tabs
 # BACKGROUND
 tab/background/color:
