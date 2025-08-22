@@ -67,3 +67,8 @@ typography/font-size/in-content/body/small:
   Windows: 13
   LinuxUbuntu: 13
   LinuxKDE: 13
+typography/font-size/in-content/body/xsmall:
+  Mac: 11
+  Windows: 11
+  LinuxUbuntu: 11
+  LinuxKDE: 11
