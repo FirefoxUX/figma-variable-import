@@ -16,5 +16,5 @@ typography/font-size/body/small:
   InContent: '{Operating System$typography/font-size/in-content/body/small}'
   Chrome: '{Operating System$typography/font-size/chrome/body/small}'
 typography/font-size/body/xsmall:
-  InContent: 1
+  InContent: '{Operating System$typography/font-size/in-content/body/xsmall}'
   Chrome: '{Operating System$typography/font-size/chrome/body/xsmall}'
