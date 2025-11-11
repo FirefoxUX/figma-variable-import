@@ -9,9 +9,9 @@
 centralCurrentColorAlias: '{Theme$text/color}'
 # URL for the central source of the design tokens
 centralSource:
-  colors: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/tokens-figma-colors.json'
-  primitives: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/tokens-figma-primitives.json'
-  theme: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/tokens-figma-theme.json'
+  colors: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/dist/tokens-figma-colors.json'
+  primitives: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/dist/tokens-figma-primitives.json'
+  theme: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/dist/tokens-figma-theme.json'
 
 ########################
 # Android modes config #
