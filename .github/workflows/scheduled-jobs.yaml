@@ -27,3 +27,6 @@ jobs:
           FIGMA_ACCESS_TOKEN: ${{ secrets.FIGMA_ACCESS_TOKEN }}
           SLACK_WEBHOOK_SUCCESS: ${{ secrets.SLACK_WEBHOOK_SUCCESS }}
           SLACK_WEBHOOK_FAILURE: ${{ secrets.SLACK_WEBHOOK_FAILURE }}
+          # TODO: re-enable NOVA_STYLES (drop this line) once the in-flight
+          # Firefox token changes have landed.
+          ONLY_RUN_JOBS: 'ANDROID_M3_MODES'
