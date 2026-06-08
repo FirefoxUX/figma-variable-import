@@ -19,7 +19,7 @@ jobs:
     name: 'Run figma variable script'
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           ref: ${{github.event.pull_request.head.ref}}
