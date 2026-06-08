@@ -1,0 +1,62 @@
+---
+# Components collection - figma-only overlay.
+#
+# Variables here either:
+#   (a) extend the Components collection with tokens that have no Firefox source backing
+#       (e.g. panel/menuitem/*, tab/icon/margin-end, toolbarbutton/opacity/disabled),
+#   (b) override values from the Firefox source export
+#       (e.g. button/border/radius, button/min-height/small).
+#
+# Component-prefixed scalar tokens from the Firefox source (toolkit/themes/shared/design-system
+# and browser/themes/shared) are emitted into Nova's `Components` collection by the figma
+# exporter (`figma-tokens-config.js`). Anything beyond that lives here.
+
+# Button — overrides
+button/border/radius:
+  Value: '{Primitives$border/radius/xlarge}'
+button/min-height/small:
+  Value: '{Primitives$size/item/large}'
+button/size/icon/small:
+  Value: '{Primitives$size/item/medium}'
+
+# Button - figma-only (no FF source)
+button/border/width:
+  Value: '{Primitives$border/width}'
+button/min-height/large: #NEW
+  Value: 40
+button/size/icon/lage: #NEW
+  Value: '{Primitives$size/item/large}'
+button/size/icon/large: #NEW
+  Value: '{Primitives$size/item/large}'
+
+# Input - figma-only (no FF source)
+input/text/min/height: #NEW
+  Value: '{Components$button/min-height}'
+
+# Panel - figma-only (no FF source)
+panel/header/info/icon/padding: #NEW
+  Value: 4
+panel/menuitem/border/radius: #NEW
+  Value: '{Primitives$border/radius/xxlarge}'
+panel/menuitem/margin/block: #NEW
+  Value: 0
+panel/menuitem/margin/inline: #NEW
+  Value: 8
+panel/menuitem/padding/block: #NEW
+  Value: 8
+panel/menuitem/padding/inline: #NEW
+  Value: 8
+panel/shadow/margin: #NEW
+  Value: 4
+
+# Tab - figma-only (no FF source)
+tab/icon/margin-end: #NEW
+  Value: 5.5
+
+# Toolbarbutton - figma-only (no FF source)
+toolbarbutton/opacity/disabled: #NEW
+  Value: 40
+toolbarbutton/padding/compact/inner: #NEW
+  Value: 6
+toolbarbutton/padding/touch/inner: #NEW
+  Value: 9

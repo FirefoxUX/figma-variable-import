@@ -7,21 +7,23 @@
 # When encountering a 'color-mix(in srgb, currentColor 7%, transparent)' value, it gets replaced by an actual color
 # The source for the currentColor value is the value of the centralCurrentColorAlias
 centralCurrentColorAlias: '{Theme$text/color}'
-# URL for the central source of the design tokens
+# URL(s) for the central source of the design tokens.
+# https:// and file:// schemes are both supported. To validate against a local Firefox
+# checkout, point these at file:///.../design-system/{dist,src}/... — the design-system
+# `npm run build` regenerates the dist/ JSONs.
 centralSource:
-  colors: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/dist/tokens-figma-colors.json'
-  primitives: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/dist/tokens-figma-primitives.json'
-  theme: 'https://raw.githubusercontent.com/mozilla-firefox/firefox/refs/heads/main/toolkit/themes/shared/design-system/dist/tokens-figma-theme.json'
+  colors: 'file:///Users/yaina/Documents/mozilla/git/firefox/toolkit/themes/shared/design-system/dist/tokens-figma-colors.json'
+  primitives: 'file:///Users/yaina/Documents/mozilla/git/firefox/toolkit/themes/shared/design-system/dist/tokens-figma-primitives.json'
+  components: 'file:///Users/yaina/Documents/mozilla/git/firefox/toolkit/themes/shared/design-system/dist/tokens-figma-components.json'
+  theme: 'file:///Users/yaina/Documents/mozilla/git/firefox/toolkit/themes/shared/design-system/dist/tokens-figma-theme.json'
+  designTokens: 'file:///Users/yaina/Documents/mozilla/git/firefox/toolkit/themes/shared/design-system/src/design-tokens.json'
 
 ########################
 # Android modes config #
 ########################
 
 android:
-  themeCollectionName: 'Color (M3)'
-  themeCollectionReferenceMode: 'Acorn / Default'
-  opacityVariablePrefix: 'State Layers/'
-  variablePrefixAlt: 'Not Using (yet)/'
+  themeCollectionName: 'Color'
 
 ######################
 # Debugging settings #
@@ -29,12 +31,11 @@ android:
 
 # You can override ENV variables here for debugging
 # env:
-#   FIGMA_URL_DESKTOP_STYLES: 'https://www.figma.com/design/yl5Z...'
-#   FIGMA_URL_FIREFOX_COLORS: 'https://www.figma.com/design/yl5Z...'
+#   FIGMA_URL_EXPERIMENTAL_DESKTOP_STYLES: 'https://www.figma.com/design/yl5Z...'
 #   FIGMA_URL_ANDROID_COMPONENTS: 'https://www.figma.com/design/yl5Z...'
 #   FIGMA_URL_MOBILE_STYLES: 'https://www.figma.com/design/yl5Z...'
 #   FIGMA_ACCESS_TOKEN: 'figd_...'
 #   SLACK_WEBHOOK_SUCCESS: 'https://hooks.slack.com/triggers/...'
 #   SLACK_WEBHOOK_FAILURE: 'https://hooks.slack.com/triggers/...'
-#   ONLY_RUN_JOBS: 'DESKTOP_STYLES, FX_COLORS'
+#   ONLY_RUN_JOBS: 'NOVA_STYLES'
 #   DRY_RUN: 'true'

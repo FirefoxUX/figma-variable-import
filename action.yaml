@@ -1,0 +1,48 @@
+name: 'Central>Figma Variable Import'
+description: 'Imports variables from Mozilla central to Figma'
+
+inputs:
+  FIGMA_URL_EXPERIMENTAL_DESKTOP_STYLES:
+    description: 'URL of the Nova Styles Figma file (input name kept for back-compat with existing secrets)'
+  FIGMA_URL_ANDROID_COMPONENTS:
+    description: 'URL of the Figma file for Android components'
+  FIGMA_URL_MOBILE_STYLES:
+    description: 'URL of the Figma file for mobile styles'
+  FIGMA_ACCESS_TOKEN:
+    description: 'Access token to authenticate with Figma'
+    required: true
+  SLACK_WEBHOOK_SUCCESS:
+    description: 'Webhook URL of a Slack workflow to notify on success'
+  SLACK_WEBHOOK_FAILURE:
+    description: 'Webhook URL of a Slack workflow to notify on failure'
+  ONLY_RUN_JOBS:
+    description: 'Comma-separated list of jobs to run. If not set, all jobs will be run'
+  DRY_RUN:
+    description: "Optional global override: 'true' forces every job to dry-run, 'false' forces every job to write. Empty uses per-job defaults from src/mozilla/jobs.ts."
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci --ignore-scripts
+
+    - name: Run script
+      shell: bash
+      env:
+        INPUT_FIGMA_URL_EXPERIMENTAL_DESKTOP_STYLES: ${{ inputs.FIGMA_URL_EXPERIMENTAL_DESKTOP_STYLES }}
+        INPUT_FIGMA_URL_ANDROID_COMPONENTS: ${{ inputs.FIGMA_URL_ANDROID_COMPONENTS }}
+        INPUT_FIGMA_URL_MOBILE_STYLES: ${{ inputs.FIGMA_URL_MOBILE_STYLES }}
+        INPUT_FIGMA_ACCESS_TOKEN: ${{ inputs.FIGMA_ACCESS_TOKEN }}
+        INPUT_SLACK_WEBHOOK_SUCCESS: ${{ inputs.SLACK_WEBHOOK_SUCCESS }}
+        INPUT_SLACK_WEBHOOK_FAILURE: ${{ inputs.SLACK_WEBHOOK_FAILURE }}
+        INPUT_ONLY_RUN_JOBS: ${{ inputs.ONLY_RUN_JOBS }}
+        INPUT_DRY_RUN: ${{ inputs.DRY_RUN }}
+      run: npx tsx src/mozilla/index.ts

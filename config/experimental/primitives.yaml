@@ -1,0 +1,54 @@
+---
+# Primitives collection - figma-only overlay.
+#
+# Variables here either:
+#   (a) override values from the Firefox source export
+#       (e.g. border/radius/large),
+#   (b) extend Primitives with tokens that have no Firefox source backing
+#       (font weight names — `font/*` is explicitly excluded from the Figma export
+#       by the design-system build; tab/margin/* and tab/padding/* — designer-only
+#       layout tokens),
+#   (c) remove tokens that should no longer exist in Nova (`delete` shorthand).
+#
+# Component-prefixed overrides (button/*, toolbarbutton/*, etc.) live in
+# `components.yaml`. Don't put them here — they'd duplicate the Components
+# collection's entries from the FF export.
+
+# Border — overrides + new radii
+border/radius/large:
+  Value: 12
+border/radius/xlarge: #NEW
+  Value: 16
+border/radius/xxlarge: #NEW
+  Value: 24
+border/radius/xxxlarge: #NEW
+  Value: 32
+
+# Font - figma-only (FF export excludes `font/*`)
+font/weight/bold: #NEW
+  Value: bold
+font/weight/semibold: #NEW
+  Value: semibold
+
+# Tab - figma-only layout tokens (not in FF source)
+tab/margin/block: #NEW
+  Value: 0
+tab/margin/block/vertical: #NEW
+  Value: 2
+tab/margin/inline/inner: #NEW
+  Value: 12
+tab/margin/inline/pinned/container/expanded: #NEW
+  Value: 4
+tab/margin/inline/pinned/expanded: #NEW
+  Value: 0
+tab/margin/overflow/clip: #NEW
+  Value: 2
+tab/padding/inline: #NEW
+  Value: 8
+tab/width/pinned/expanded: #NEW
+  Value: 4
+
+# Removed tokens (use 'delete' shorthand)
+background/color/overlay: delete
+size/sidebar: delete
+size/sidebar/narrow: delete

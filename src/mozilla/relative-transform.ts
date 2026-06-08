@@ -1,6 +1,25 @@
-import { OPERATING_SYSTEM_MAP, SURFACE_MAP } from '../imports.js'
-import { VDVariable, VDCollection, extractVdReference } from '../vd.js'
+import { OPERATING_SYSTEM_MAP, SURFACE_MAP } from './imports.js'
+import { VDVariable, VDCollection, extractVdReference } from '../core/vd.js'
 
+// ---------------------------------------------------------------------------
+// Relative-unit expansion.
+//
+// Figma variables only hold concrete values; CSS `rem`/`em`/`calc()` doesn't
+// translate directly. This module takes every token classified as "relative"
+// by `central-import.ts:filterRelativeUnits` and expands it to per-OS pixel
+// values across two surfaces — `chrome` and `in-content`.
+//
+// Surface root font sizes live in `config/operating-system.yaml` under
+// `typography/font-size/<surface>/body/root` — one per-OS value per surface.
+//
+// Output lands in two places:
+//   - per-OS values in the Operating System collection
+//     (key: `<original>/<surface>/<rest>`)
+//   - per-surface aliases in the Surface collection (modes Chrome / InContent
+//     point at the matching Operating System entry)
+// ---------------------------------------------------------------------------
+
+// These two keys must match entries in config/operating-system.yaml.
 const CHROME_ROOT_KEY = 'typography/font-size/chrome/body/root'
 const IN_CONTENT_ROOT_KEY = 'typography/font-size/in-content/body/root'
 
@@ -34,6 +53,12 @@ export function constructRelativeData(
     normalizedRelativeValues.reference,
     rootEntries,
     updatedOperatingSystemMap,
+  )
+  processCalcs(
+    normalizedRelativeValues.calc,
+    rootEntries,
+    updatedOperatingSystemMap,
+    surfaceReferenceQueue,
   )
 
   const updatedSurfaceMap = addSurfaceTokens(surfaceReferenceQueue)
@@ -81,8 +106,12 @@ function processSurfaceReferences(
 ) {
   const surfaceReferenceQueue = Object.assign({}, renamedKeysMap)
 
+  // Reference chains can be multi-level (e.g. card/padding → space/large →
+  // dimension/relative/100). Look up the reference target in surfaceReferenceQueue,
+  // which accumulates entries as earlier reference tokens are processed, rather than
+  // in renamedKeysMap (which only contains the em-valued leaves).
   for (const [relativeKey, referenceKey] of Object.entries(referenceMap)) {
-    const newReferences = renamedKeysMap[referenceKey]
+    const newReferences = surfaceReferenceQueue[referenceKey]
     if (!newReferences) {
       throw new Error(
         `When parsing relative values, the reference for ${relativeKey} is not found`,
@@ -160,6 +189,112 @@ function processRelativeValues(
   return renamedKeysMap
 }
 
+/**
+ * Evaluates `calc(...)` tokens per surface × OS mode and emits results into
+ * Operating System. Must run *after* `processRelativeValues` and
+ * `processSurfaceReferences` — calc references can resolve to em / ref tokens
+ * those passes already wrote into `updatedOperatingSystemMap`.
+ */
+function processCalcs(
+  calcs: Record<string, string>,
+  rootEntries: { 'in-content': VDVariable; chrome: VDVariable },
+  updatedOperatingSystemMap: VDCollection,
+  surfaceReferenceQueue: Record<string, Partial<Record<string, string>>>,
+) {
+  for (const [tokenName, calcStr] of Object.entries(calcs)) {
+    const expr = calcStr.replace(/^calc\(/, '').replace(/\)\s*$/, '')
+
+    const [firstSegment, ...remainingSegments] = tokenName.split('/')
+
+    Object.entries(rootEntries).forEach(([surface, rootEntry]) => {
+      const newRelativeKey = [firstSegment, surface, ...remainingSegments].join(
+        '/',
+      )
+
+      const perOsValues: Record<string, number> = {}
+      for (const [osMode, rootValue] of Object.entries(rootEntry)) {
+        if (osMode === 'id') continue
+        if (typeof rootValue !== 'number') {
+          throw new Error(
+            `When parsing calc values, the root font size for ${osMode} is not a number`,
+          )
+        }
+        perOsValues[osMode] = evaluateCalc(
+          expr,
+          surface,
+          osMode,
+          rootValue,
+          updatedOperatingSystemMap,
+          tokenName,
+        )
+      }
+      updatedOperatingSystemMap[newRelativeKey] = perOsValues
+
+      if (!surfaceReferenceQueue[tokenName]) {
+        surfaceReferenceQueue[tokenName] = {}
+      }
+      surfaceReferenceQueue[tokenName][surface] = newRelativeKey
+    })
+  }
+}
+
+/**
+ * Substitute references and unit-bearing literals into a CSS calc expression,
+ * then evaluate the arithmetic. Refs resolve against `osMap`, which already
+ * holds per-OS values for every other relative token because `processCalcs`
+ * runs last.
+ */
+function evaluateCalc(
+  expression: string,
+  surface: string,
+  osMode: string,
+  rootValue: number,
+  osMap: VDCollection,
+  forTokenName: string,
+): number {
+  // The collection prefix in the reference is ignored — relative tokens always
+  // land in Operating System, so we look up by variable name alone.
+  let resolved = expression.replace(
+    /\{[^$]+\$([^}]+)\}/g,
+    (_, varName: string) => {
+      const [first, ...rest] = varName.split('/')
+      const surfaceKey = [first, surface, ...rest].join('/')
+      const entry = osMap[surfaceKey]
+      const resolvedValue = entry?.[osMode]
+      if (typeof resolvedValue !== 'number') {
+        throw new Error(
+          `When evaluating calc for ${forTokenName} [${surface}/${osMode}]: ` +
+            `reference {${varName}} → ${surfaceKey}.${osMode} did not resolve to a number.`,
+        )
+      }
+      return String(resolvedValue)
+    },
+  )
+
+  resolved = resolved.replace(/([\d.]+)r?em\b/g, (_, num: string) => {
+    return String(parseFloat(num) * rootValue)
+  })
+  resolved = resolved.replace(/([\d.]+)px\b/g, '$1')
+
+  if (!/^[\d.+\-*/()\s]+$/.test(resolved)) {
+    throw new Error(
+      `When evaluating calc for ${forTokenName} [${surface}/${osMode}]: ` +
+        `unsupported expression after substitution: "${resolved}"`,
+    )
+  }
+  // Whitelisted arithmetic input only — see the regex check above. Function()
+  // is faster and simpler than a hand-rolled parser for + - * / and parens.
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
+  const result: unknown = new Function(`return (${resolved})`)()
+  if (typeof result !== 'number' || !Number.isFinite(result)) {
+    throw new Error(
+      `When evaluating calc for ${forTokenName} [${surface}/${osMode}]: ` +
+        `result is not a finite number (expression: "${resolved}").`,
+    )
+  }
+  return Math.round(result)
+}
+
 function normalizeRelativeValues(
   relativeData: Record<string, { Value: string | number | boolean }>,
 ) {
@@ -172,8 +307,13 @@ function normalizeRelativeValues(
       }
 
       const aliasParts = extractVdReference(value.Value)
-      if (aliasParts !== null) {
+      if (aliasParts !== null && /^\{[^$]+\$[^}]+\}$/.test(value.Value)) {
         acc.reference[key] = aliasParts.variable
+        return acc
+      }
+
+      if (value.Value.startsWith('calc(')) {
+        acc.calc[key] = value.Value
         return acc
       }
 
@@ -184,21 +324,24 @@ function normalizeRelativeValues(
         )
       }
 
-      let parsedValue = 0
+      let parsedValue: number
       try {
         parsedValue = parseFloat(value.Value)
-      } catch (_error) {
+      } catch (error) {
         throw new Error(
           `When parsing relative values, the value for ${key} is not a valid number`,
+          { cause: error },
         )
       }
 
       acc.value[key] = parsedValue
       return acc
     },
-    { reference: {}, value: {} } as {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    { reference: {}, value: {}, calc: {} } as {
       reference: Record<string, string>
       value: Record<string, number>
+      calc: Record<string, string>
     },
   )
 }

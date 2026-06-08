@@ -1,11 +1,11 @@
-name: 'Update Android M3 modes'
+name: 'Sync tokens to Nova Styles'
 
 on:
   workflow_dispatch:
     inputs:
       figmaUrl:
         type: 'string'
-        description: '"Android Components" branch or file URL'
+        description: '"Nova Styles" branch or file URL'
         required: true
       dryRun:
         type: 'boolean'
@@ -24,12 +24,11 @@ jobs:
           fetch-depth: 0
           ref: ${{github.event.pull_request.head.ref}}
           repository: ${{github.event.pull_request.head.repo.full_name}}
-      - name: 'Run ANDROID_M3_MODES job'
+      - name: 'Run NOVA_STYLES job'
         uses: './'
         with:
-          FIGMA_URL_ANDROID_COMPONENTS: '${{ github.event.inputs.figmaUrl }}'
-          FIGMA_URL_MOBILE_STYLES: '${{ secrets.FIGMA_URL_MOBILE_STYLES }}'
+          FIGMA_URL_EXPERIMENTAL_DESKTOP_STYLES: '${{ github.event.inputs.figmaUrl }}'
           FIGMA_ACCESS_TOKEN: '${{ secrets.FIGMA_ACCESS_TOKEN }}'
           SLACK_WEBHOOK_FAILURE: '${{ secrets.SLACK_WEBHOOK_FAILURE }}'
-          ONLY_RUN_JOBS: 'ANDROID_M3_MODES'
+          ONLY_RUN_JOBS: 'NOVA_STYLES'
           DRY_RUN: '${{ github.event.inputs.dryRun }}'

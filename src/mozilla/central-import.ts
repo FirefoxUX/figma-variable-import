@@ -1,7 +1,8 @@
-import { customParse, Color, formatHex8 } from '../color.js'
-import Config from '../Config.js'
-import { THEME_MAP } from '../imports.js'
-import { extractVdReference } from '../vd.js'
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import { customParse, Color, formatHex8 } from '../core/color.js'
+import { THEME_MAP } from './imports.js'
+import { extractVdReference } from '../core/vd.js'
 
 type RawPrimitiveValue = string | number | boolean
 type RawThemeValue =
@@ -15,6 +16,7 @@ type RawThemeValue =
 type RawCentralTokens = {
   colors: Record<string, RawPrimitiveValue>
   primitives: Record<string, RawPrimitiveValue>
+  components: Record<string, RawPrimitiveValue>
   theme: Record<string, RawThemeValue>
 }
 
@@ -28,6 +30,7 @@ type ThemeTokens = {
 export type CentralTokens = {
   Colors: Record<string, PrimitiveTokens>
   Primitives: Record<string, PrimitiveTokens>
+  Components: Record<string, PrimitiveTokens>
   Theme: Record<string, ThemeTokens>
 }
 
@@ -36,11 +39,33 @@ type CentralAndRelativeTokens = {
   relative: Record<string, PrimitiveTokens>
 }
 
-export async function getCentralCollectionValues(): Promise<CentralAndRelativeTokens> {
-  const result = await downloadFromCentral()
+type CentralSourceConfig = {
+  colors: string
+  primitives: string
+  components: string
+  theme: string
+}
+
+async function fetchJson<T>(url: string): Promise<T> {
+  if (url.startsWith('file://')) {
+    const buf = await readFile(fileURLToPath(url), 'utf8')
+    return JSON.parse(buf) as T
+  }
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`)
+  }
+  return (await res.json()) as T
+}
+
+export async function getCentralCollectionValues(
+  centralSource: CentralSourceConfig,
+  centralCurrentColorAlias: string,
+): Promise<CentralAndRelativeTokens> {
+  const result = await downloadFromCentral(centralSource)
     .then(normalizeNames)
     .then(mergeStaticTokens)
-    .then(replaceTextColor)
+    .then((tokens) => replaceTextColor(tokens, centralCurrentColorAlias))
     .then(filterRelativeUnits)
 
   return result
@@ -51,29 +76,27 @@ export async function getCentralCollectionValues(): Promise<CentralAndRelativeTo
  *
  * @returns {Promise<RawCentralTokens>} A promise that resolves to the raw central tokens.
  */
-async function downloadFromCentral() {
-  // download each json from from the links in Config.centralSource with Promise.all
+async function downloadFromCentral(centralSource: CentralSourceConfig) {
+  // download each json from the links in centralSource with Promise.all.
+  // Both https:// and file:// URLs are supported via fetchJson.
   try {
-    const [colors, primitives, theme] = await Promise.all([
-      fetch(Config.centralSource.colors).then(
-        (res) => res.json() as unknown as Record<string, RawPrimitiveValue>,
-      ),
-      fetch(Config.centralSource.primitives).then(
-        (res) => res.json() as unknown as Record<string, RawPrimitiveValue>,
-      ),
-      fetch(Config.centralSource.theme).then(
-        (res) => res.json() as unknown as Record<string, RawPrimitiveValue>,
-      ),
+    const [colors, primitives, components, theme] = await Promise.all([
+      fetchJson<Record<string, RawPrimitiveValue>>(centralSource.colors),
+      fetchJson<Record<string, RawPrimitiveValue>>(centralSource.primitives),
+      fetchJson<Record<string, RawPrimitiveValue>>(centralSource.components),
+      fetchJson<Record<string, RawThemeValue>>(centralSource.theme),
     ])
     const rawCentralTokens: RawCentralTokens = {
       colors,
       primitives,
+      components,
       theme,
     }
     return rawCentralTokens
   } catch (error) {
     throw new Error(
       `Central Import: When downloading from central, the download failed: ${error?.toString()}`,
+      { cause: error },
     )
   }
 }
@@ -104,30 +127,28 @@ function normalizeNames(rawCentralTokens: RawCentralTokens): CentralTokens {
     {} as Record<string, ThemeTokens>,
   )
 
-  // primitives and relative values just need to be wrapped in an object
-  const wrappedPrimitives = Object.fromEntries(
-    Object.entries(rawCentralTokens.primitives).map(([key, value]) => [
-      key,
-      { Value: value },
-    ]),
-  )
-  // primitives and relative values just need to be wrapped in an object
-  const wrappedColors = Object.fromEntries(
-    Object.entries(rawCentralTokens.colors).map(([key, value]) => [
-      key,
-      { Value: value },
-    ]),
-  )
+  // primitives, components and color values just need to be wrapped in an object
+  const wrapPrimitiveMap = (m: Record<string, RawPrimitiveValue>) =>
+    Object.fromEntries(
+      Object.entries(m).map(([key, value]) => [key, { Value: value }]),
+    )
+  const wrappedPrimitives = wrapPrimitiveMap(rawCentralTokens.primitives)
+  const wrappedComponents = wrapPrimitiveMap(rawCentralTokens.components)
+  const wrappedColors = wrapPrimitiveMap(rawCentralTokens.colors)
 
   return {
     Colors: wrappedColors,
     Primitives: wrappedPrimitives,
+    Components: wrappedComponents,
     Theme: themeTokens,
   }
 }
 
-function replaceTextColor(tokens: CentralTokens): CentralTokens {
-  const colorMixTf = new ColorMix(tokens, Config.centralCurrentColorAlias)
+function replaceTextColor(
+  tokens: CentralTokens,
+  centralCurrentColorAlias: string,
+): CentralTokens {
+  const colorMixTf = new ColorMix(tokens, centralCurrentColorAlias)
 
   const potentiallyFix = (
     value: string,
@@ -135,17 +156,24 @@ function replaceTextColor(tokens: CentralTokens): CentralTokens {
     tokenName: string,
   ) => {
     if (value === 'inherit') {
-      return tryResolveInheritance(tokens, tokenName, mode)
+      return tryResolveInheritance(
+        tokens,
+        tokenName,
+        mode,
+        centralCurrentColorAlias,
+      )
     }
     if (value === 'currentColor') {
-      return Config.centralCurrentColorAlias
+      return centralCurrentColorAlias
     }
     if (colorMixTf.isColorMix(value)) {
       if (mode === 'Light' || mode === 'Dark') {
         return colorMixTf.replaceColorMix(mode, value)
       }
       throw new Error(
-        `When trying to replace color mix: Color mix '${value}' is not supported in mode '${mode}'`,
+        `Token '${tokenName}': color-mix '${value}' is not supported in mode '${mode}'. ` +
+          `currentColor requires Light or Dark mode context — if this is a primitive (modeless) token, ` +
+          `it must be promoted to a theme token (mode-shaped object with light/dark keys) in the Firefox source.`,
       )
     }
     return value
@@ -196,28 +224,27 @@ function mergeStaticTokens(tokens: CentralTokens): CentralTokens {
 
 function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
   const relativeTokens: Record<string, PrimitiveTokens> = {}
-  let newlyAdded = 0
+  let newlyAdded: number
 
-  // do-while newlyAdded > 0
-  // iterate over the collections in the tokens object and find tokens that are relative (e.g. "10rem", "5%", etc.)
-  // and tokens that depend on relative tokens
-  // if we find them, we remove them from the original collection and add them to the relativeTokens collection
-  // then we repeat the process until no more relative tokens and those that depend on them are found
   do {
     newlyAdded = 0
     for (const [collectionName, collection] of Object.entries(tokens)) {
-      // Iterate over the tokens in each collection
       for (const entry of Object.entries(collection)) {
         const tokenName = entry[0]
         const token = entry[1] as PrimitiveTokens | ThemeTokens
         const isRelative = (value: string) => {
-          // first we check if its a reference to another token
-          const extracted = extractVdReference(value)
-          if (extracted) {
-            return relativeTokens[extracted.variable] !== undefined
+          // Treat as relative only if the value is a *clean* single reference
+          // (e.g. "{Primitives$space/xsmall}"). CSS shorthands like
+          // "{Primitives$space/xsmall} {Primitives$space/large}" are not eligible —
+          // they don't translate to a single Figma variable value.
+          const cleanReference = /^\{[^$]+\$[^}]+\}$/.test(value)
+          if (cleanReference) {
+            const extracted = extractVdReference(value)
+            return (
+              extracted !== null &&
+              relativeTokens[extracted.variable] !== undefined
+            )
           }
-          // next check if the value is a relative value
-          // check if the value is a number and ends with a unit that is rem, em, %
           if (
             value.endsWith('rem') ||
             value.endsWith('em') ||
@@ -225,15 +252,22 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
           ) {
             return true
           }
+          // calc() expressions that contain em/rem (or reference relative
+          // tokens) are evaluated per OS / surface by relative-transform.
+          if (value.startsWith('calc(')) {
+            if (/[\d.]+r?em\b/.test(value)) return true
+            const refs = value.match(/\{[^$]+\$([^}]+)\}/g) || []
+            return refs.some((r) => {
+              const ext = extractVdReference(r)
+              return ext !== null && relativeTokens[ext.variable] !== undefined
+            })
+          }
           return false
         }
 
-        // first check if we have a primitive token or a theme token
         if ('Value' in token && typeof token.Value === 'string') {
           const isRel = isRelative(token.Value)
           if (isRel) {
-            // if the token is relative, we can remove it from the original collection
-            // and add it to the relativeTokens collection
             newlyAdded++
             delete (
               tokens[collectionName as keyof CentralTokens] as Record<
@@ -244,7 +278,6 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
             relativeTokens[tokenName] = token
           }
         } else if ('Light' in token) {
-          // Check if the token is a theme token
           const themeToken = token
 
           for (const mode of ['Light', 'Dark', 'HCM'] as const) {
@@ -252,7 +285,6 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
             if (typeof value === 'string') {
               const isRel = isRelative(value)
               if (isRel) {
-                // throw an error because we're not expecting Theme tokens to be relative
                 throw new Error(
                   `Central Import: When filtering relative units, the token ${tokenName} is a theme token and is relative. Which is not expected.`,
                 )
@@ -270,8 +302,12 @@ function filterRelativeUnits(tokens: CentralTokens): CentralAndRelativeTokens {
   }
 }
 
+// Accepts color-mix in any of the common interpolation color spaces. Since the
+// second color is `transparent`, the interpolation space doesn't affect the
+// result — we always get currentColor at N% alpha — so we don't need separate
+// math per space.
 const COLOR_MIX_REGEX =
-  /color-mix\(in srgb, currentColor (\d+)%?, transparent\)/
+  /color-mix\(in (?:srgb|lch|oklch|hsl|oklab|lab|display-p3), currentColor (\d+)%?, transparent\)/
 
 /**
  * Class to replace color-mix functions with an actual color based on the mode.
@@ -281,12 +317,6 @@ class ColorMix {
   light: Color
   dark: Color
 
-  /**
-   * Creates a new instance of the ColorMix class.
-   * @param collection - The collection of colors.
-   * @param key - The key to access the colors in the collection.
-   * @throws Error if the light or dark color is invalid.
-   */
   constructor(collections: CentralTokens, key: string) {
     const lightPrimitive = centralFullResolve(key, 'Light', collections)
     const darkPrimitive = centralFullResolve(key, 'Dark', collections)
@@ -310,22 +340,10 @@ class ColorMix {
     this.dark = dark
   }
 
-  /**
-   * Checks if a string represents a color mix.
-   * @param str - The string to check.
-   * @returns True if the string represents a color mix, false otherwise.
-   */
   isColorMix(str: string) {
     return COLOR_MIX_REGEX.test(str)
   }
 
-  /**
-   * Replaces a color mix with a new color based on the mode.
-   * @param mode - The mode ('Light' or 'Dark') to determine which color to use.
-   * @param str - The string representing the color mix.
-   * @returns The new color as a hex8 string.
-   * @throws Error if the color mix is invalid.
-   */
   replaceColorMix(mode: 'Light' | 'Dark', str: string) {
     const match = str.match(COLOR_MIX_REGEX)
 
@@ -343,26 +361,14 @@ class ColorMix {
   }
 }
 
-/**
- * Attempts to resolve the inheritance of a token by searching through its hierarchical structure.
- *
- * @param tokens - An object containing separated tokens categorized by themes.
- * @param tokenName - The name of the token to resolve, represented as a string with parts separated by '/'.
- * @param mode - The mode of the theme to resolve ('Light', 'Dark', or 'HCM').
- * @returns The resolved token value for the specified mode.
- * @throws Will throw an error if no value is found for the given token name and mode.
- */
 function tryResolveInheritance(
   tokens: CentralTokens,
   tokenName: string,
-  mode?: 'Light' | 'Dark' | 'HCM',
+  mode: 'Light' | 'Dark' | 'HCM' | undefined,
+  fallback: string,
 ): string | number | boolean {
   const parts = tokenName.split('/')
 
-  // First pass: keep the last element and pop off the second to last one and then the one before that
-  // (so if the token is button/color/ghost/disabled, we will first try button/color/disabled, then button/disabled, etc.)
-  // Second pass: current approach of just removing the last and then the last
-  // (so if the token is button/color/ghost/disabled, we will first try button/color/ghost, then button/color, etc.)
   const PASSES = 2
   const getKeyFn =
     (pass: number) => (i: number, parts: string[], lastPart: string) => {
@@ -384,16 +390,14 @@ function tryResolveInheritance(
 
       const current = tokens.Theme[key]
       if (current) {
-        // check if object
         if (!('Value' in current)) {
-          // When no mode was provided, we probably came from a primitive value, so it seems like a mistake if we resolve to a non-primitive value
           if (!mode) {
-            throw new Error(
-              `Central Import: When trying to resolve inheritance for primitive ${tokenName}, a non-primitive value was found.`,
-            )
+            // Primitive context found a multi-mode theme parent — can't pick
+            // a single value. Fall back to the text-color alias (matches CSS
+            // semantics: `inherit` ≈ surrounding text color).
+            return fallback
           }
 
-          // check if the mode exists
           if (current[mode] !== undefined && current[mode] !== 'inherit') {
             return current[mode]
           }
@@ -404,9 +408,10 @@ function tryResolveInheritance(
     }
   }
 
-  throw new Error(
-    `Central Import: When trying to find a replacement for 'inherit' in ${tokenName}, no value was found`,
-  )
+  // Path-walk exhausted without finding a concrete parent value. The CSS
+  // semantics of `inherit` are "use whatever the parent context provides" —
+  // for our purposes that's the central text-color alias.
+  return fallback
 }
 function centralFullResolve(
   key: string,
@@ -421,21 +426,18 @@ function centralFullResolve(
       return value
     }
 
-    // check if the collection exists
     const collection = collections[extracted.collection as keyof CentralTokens]
     if (!collection) {
       throw new Error(
         `Central Import: When resolving '${key}', the collection '${extracted.collection}' does not exist`,
       )
     }
-    // check if the variable exists
     const variable = collection[extracted.variable]
     if (!variable) {
       throw new Error(
         `Central Import: When resolving '${key}', the variable '${extracted.variable}' does not exist in collection '${extracted.collection}'`,
       )
     }
-    // for objects, check if the mode exists
     if (!('Value' in variable)) {
       if (!variable[mode]) {
         throw new Error(

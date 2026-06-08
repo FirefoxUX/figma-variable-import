@@ -1,0 +1,76 @@
+---
+# Tab Group Theme - figma-only
+#
+# This collection has no analog in the Firefox token source. It defines per-color-mode
+# (Purple/Yellow/Orange/…) aliases used to theme tab groups. All values are aliases into
+# the Theme collection's `tab/group/<color>/*` tokens, which themselves are sourced from
+# Firefox.
+#
+# Modes: Purple, Yellow, Orange, Red, Pink, Blue, Cyan, Green, Grey
+# (Mode order matches the Nova file. Color names ≠ light/dark; they're palette identifiers.)
+
+theme-color-default:
+  Purple: '{Theme$tab/group/violet/default}'
+  Yellow: '{Theme$tab/group/yellow/default}'
+  Orange: '{Theme$tab/group/orange/default}'
+  Red: '{Theme$tab/group/red/default}'
+  Pink: '{Theme$tab/group/pink/default}'
+  Blue: '{Theme$tab/group/blue/default}'
+  Cyan: '{Theme$tab/group/cyan/default}'
+  Green: '{Theme$tab/group/green/default}'
+  Grey: '{Theme$tab/group/grey/default}'
+
+theme-color-hover:
+  Purple: '{Theme$tab/group/violet/hover}'
+  Yellow: '{Theme$tab/group/yellow/hover}'
+  Orange: '{Theme$tab/group/orange/hover}'
+  Red: '{Theme$tab/group/red/hover}'
+  Pink: '{Theme$tab/group/pink/hover}'
+  Blue: '{Theme$tab/group/blue/hover}'
+  Cyan: '{Theme$tab/group/cyan/hover}'
+  Green: '{Theme$tab/group/green/hover}'
+  Grey: '{Theme$tab/group/grey/hover}'
+
+theme-color-active:
+  Purple: '{Theme$tab/group/violet/focused}'
+  Yellow: '{Theme$tab/group/yellow/focused}'
+  Orange: '{Theme$tab/group/orange/focused}'
+  Red: '{Theme$tab/group/red/focused}'
+  Pink: '{Theme$tab/group/pink/focused}'
+  Blue: '{Theme$tab/group/blue/focused}'
+  Cyan: '{Theme$tab/group/cyan/focused}'
+  Green: '{Theme$tab/group/green/focused}'
+  Grey: '{Theme$tab/group/grey/focused}'
+
+theme-color-focus:
+  Purple: '{Theme$tab/group/violet/focused}'
+  Yellow: '{Theme$tab/group/yellow/focused}'
+  Orange: '{Theme$tab/group/orange/focused}'
+  Red: '{Theme$tab/group/red/focused}'
+  Pink: '{Theme$tab/group/pink/focused}'
+  Blue: '{Theme$tab/group/blue/focused}'
+  Cyan: '{Theme$tab/group/cyan/focused}'
+  Green: '{Theme$tab/group/green/focused}'
+  Grey: '{Theme$tab/group/grey/focused}'
+
+theme-color-text:
+  Purple: '{Theme$tab/group/violet/text}'
+  Yellow: '{Theme$tab/group/yellow/text}'
+  Orange: '{Theme$tab/group/orange/text}'
+  Red: '{Theme$tab/group/red/text}'
+  Pink: '{Theme$tab/group/pink/text}'
+  Blue: '{Theme$tab/group/blue/text}'
+  Cyan: '{Theme$tab/group/cyan/text}'
+  Green: '{Theme$tab/group/green/text}'
+  Grey: '{Colors$color/white}'
+
+theme-color-count:
+  Purple: '{Theme$tab/group/violet/default}'
+  Yellow: '{Theme$tab/group/yellow/default}'
+  Orange: '{Theme$tab/group/orange/default}'
+  Red: '{Theme$tab/group/red/default}'
+  Pink: '{Theme$tab/group/pink/default}'
+  Blue: '{Theme$tab/group/blue/default}'
+  Cyan: '{Theme$tab/group/cyan/default}'
+  Green: '{Theme$tab/group/green/default}'
+  Grey: '{Theme$tab/group/grey/default}'
