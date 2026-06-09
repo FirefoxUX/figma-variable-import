@@ -5,8 +5,8 @@ on:
     inputs:
       figmaUrl:
         type: 'string'
-        description: '"Android Components" branch or file URL'
-        required: true
+        description: '"Android Components" branch or file URL (optional — defaults to the main file)'
+        required: false
       dryRun:
         type: 'boolean'
         description: 'Do not apply changes'
@@ -27,7 +27,7 @@ jobs:
       - name: 'Run ANDROID_M3_MODES job'
         uses: './'
         with:
-          FIGMA_URL_ANDROID_COMPONENTS: '${{ github.event.inputs.figmaUrl }}'
+          FIGMA_URL_ANDROID_COMPONENTS: '${{ github.event.inputs.figmaUrl || secrets.FIGMA_URL_ANDROID_COMPONENTS }}'
           FIGMA_URL_MOBILE_STYLES: '${{ secrets.FIGMA_URL_MOBILE_STYLES }}'
           FIGMA_ACCESS_TOKEN: '${{ secrets.FIGMA_ACCESS_TOKEN }}'
           SLACK_WEBHOOK_FAILURE: '${{ secrets.SLACK_WEBHOOK_FAILURE }}'
